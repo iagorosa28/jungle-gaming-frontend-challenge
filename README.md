@@ -1,6 +1,6 @@
 # Jungle Gaming — fundação e spike técnico
 
-Entrega **JGFC-1** do [Frontend Challenge](https://github.com/junglegaming/frontend-challenge/blob/main/README.md). Demonstra REST com Axios + MSW e evento recebido pelo `socket.io-client`, com React, TypeScript, Vite, TanStack Router/Query, Tailwind e componentes shadcn/ui adaptados. Zod valida contratos; decimal.js mantém ETH como string decimal.
+Fundação técnica do [Frontend Challenge](https://github.com/junglegaming/frontend-challenge/blob/main/README.md). Demonstra REST com Axios + MSW e evento recebido pelo `socket.io-client`, com React, TypeScript, Vite, TanStack Router/Query, Tailwind e componentes shadcn/ui adaptados. Zod valida contratos; decimal.js mantém ETH como string decimal.
 
 Esta etapa não implementa catálogo completo, compra, conta ou carteira. Todos os dados são fictícios. **Preparado para publicação; primeira publicação e validação pública ainda pendentes de configuração manual na Vercel.**
 
@@ -70,23 +70,18 @@ npm run lighthouse -- --profile=desktop --runs=3
 
 Se necessário, defina `CHROME_PATH` para o executável. O script usa Lighthouse e chrome-launcher, grava HTML/JSON por medição e `summary.json` com medianas, versões, ambiente, LCP, CLS e TBT em `reports/lighthouse/<perfil>/`. Aceita `--url=<URL>`. Início e detalhe deverão ser auditados após sua implementação; a página técnica não os substitui.
 
-## Primeiro deploy na Vercel — operação manual
+## Publicação
 
-Nenhum deploy, login Vercel ou integração adicional é executado por esta entrega.
+Configuração técnica para a Vercel: framework **Vite**, runtime **Node 24.x**, instalação `npm ci`, build `npm run build` e saída `dist`. Usar `VITE_ENABLE_MOCKS=true` em Preview e Production; a variável é pública e não contém segredos.
 
-1. Disponibilize a branch e o PR no GitHub. O responsável importa `iagorosa28/jungle-gaming-frontend-challenge` pelo painel da Vercel, autorizando a integração GitHub.
-2. Selecione **Vite**, raiz do repositório, **Node 24.x**, instalação **`npm ci`**, build **`npm run build`**, saída **`dist`**. A configuração versionada em `vercel.json` define framework, build, saída, rewrites SPA e headers do worker.
-3. Configure **`VITE_ENABLE_MOCKS=true`** tanto em **Preview** quanto em **Production**. O padrão do código já é `true`, mas a configuração explícita documenta a intenção. A variável é pública e não contém segredo.
-4. Use **`main` como Production Branch**. Enquanto a main tiver somente preparação, o primeiro build dessa branch pode falhar; crie o Preview da branch `chore/JGFC-1-fundacao-spike` pelo PR/painel. Não faça merge para contornar essa etapa.
-5. No Preview HTTPS, acesse diretamente `/spike?scenario=success`, recarregue e repita os passos REST e Socket.IO acima. Confirme que `/mockServiceWorker.js` retorna JavaScript, que `/assets/` carrega e que o evento v2 atualiza o preço por REST. Confira também o cenário de erro e as três larguras de tela.
-6. Só após revisão e aprovação, o responsável integra à main; o vínculo GitHub–Vercel publicará Production automaticamente. Valide novamente a URL pública. Registre as URLs/evidências no PR.
+`vercel.json` configura rewrites SPA e headers do Service Worker. A demonstração requer HTTPS fora de localhost e suporte a Service Worker e WebSocket. Os mocks estão incluídos no build; não há backend substituto quando desativados.
 
-Como o mock WebSocket é interceptado no navegador, a demonstração não precisa de servidor WebSocket na Vercel. Isso não demonstra backend público real. HTTPS e suporte do navegador a Service Worker/WebSocket são necessários; mocks desativados não têm backend substituto.
+A validação pública está pendente. Em HTTPS, verificar acesso direto e refresh de `/spike?scenario=success`, carregamento de `/assets/` e `/mockServiceWorker.js`, cenários REST e recebimento de eventos Socket.IO.
 
 ## Referências e evidências
 
-- [Figma oficial](https://www.figma.com/design/Ff0SksUi7UFtPWUO8kyNtw/Frontend-Challenge?node-id=0-1); PNGs locais em `referencias-locais/figma/`, ignorados e não versionados.
+- [Figma oficial](https://www.figma.com/design/Ff0SksUi7UFtPWUO8kyNtw/Frontend-Challenge?node-id=0-1).
 - [Arquitetura, contratos e limitações](ARCHITECTURE.md).
-- [Registro de verificações do JGFC-1](docs/JGFC-1-validation.md).
+- [Resultados e evidências](docs/validation.md).
 
 Não há senhas, tokens reais ou persistência de dados neste marco. A simulação no navegador não equivale à segurança de um servidor real.

@@ -26,7 +26,7 @@ export function SpikePage({ scenario }: { scenario: Scenario }) {
   return (
     <main id="conteudo" className="mx-auto w-full max-w-6xl px-5 pb-12 pt-10 sm:px-9 sm:pt-16">
       <div className="mb-5 flex items-center gap-3 text-xs uppercase tracking-[0.18em] text-primary">
-        <span className="h-px w-8 bg-primary" /> JGFC-1 / Fundação técnica
+        <span className="h-px w-8 bg-primary" /> Marketplace / Fundação técnica
       </div>
       <div className="flex flex-col justify-between gap-6 border-b border-border pb-9 md:flex-row md:items-end">
         <div className="max-w-2xl">

@@ -1,8 +1,8 @@
-# Arquitetura — JGFC-1
+# Arquitetura — fundação do marketplace
 
 ## Escopo e referências
 
-Esta entrega valida a fundação técnica. O [enunciado oficial](https://github.com/junglegaming/frontend-challenge/blob/main/README.md) orienta o marketplace completo; o card JGFC-1 limita esta etapa a REST, Socket.IO, interface técnica e preparação de publicação. Compra, sessão, catálogo definitivo, carrinho e carteiras ainda não existem.
+Esta entrega valida a fundação técnica. O [enunciado oficial](https://github.com/junglegaming/frontend-challenge/blob/main/README.md) orienta o marketplace completo; o estado atual inclui REST, Socket.IO, interface técnica e preparação de publicação. Compra, sessão, catálogo definitivo, carrinho e carteiras ainda não existem.
 
 A página técnica usa cores escuras, acentos quentes e uma pilha de fontes monoespaçadas locais. Os tokens são aproximações para o spike; a reprodução integral das telas do Figma pertence às próximas entregas. O monograma J é provisório. Nenhum PNG de tela é usado como interface ou asset.
 
@@ -64,8 +64,8 @@ O estado dos mocks existe apenas na memória do documento. Refresh ou novo conte
 
 O worker gerado pelo MSW é versionado em `public/mockServiceWorker.js` e copiado para `dist`. A aplicação requer localhost ou HTTPS e navegador com Service Worker e WebSocket. O MSW REST usa Service Worker; a interceptação WebSocket vive no contexto da página. Desativar mocks não disponibiliza um backend: a integração real ainda precisará de URL, autenticação e servidor próprios.
 
-Vercel recebe build Vite em `dist`. Rewrites cobrem rotas SPA e preservam `/api`, `/assets`, o worker e favicon. O worker usa `Cache-Control: no-cache`; não se coloca segredo em variáveis `VITE_*`. O Playwright padrão usa o build servido por `vite preview`; esse teste não substitui o teste do Preview Vercel. A validação pública permanece pendente da configuração manual pelo responsável.
+Vercel recebe build Vite em `dist`. Rewrites cobrem rotas SPA e preservam `/api`, `/assets`, o worker e favicon. O worker usa `Cache-Control: no-cache`; não se coloca segredo em variáveis `VITE_*`. O Playwright padrão usa o build servido por `vite preview`; esse teste não substitui o teste do Preview Vercel. A validação pública permanece pendente em ambiente HTTPS.
 
 ## Validação e limites
 
-Os comandos e resultados reais são registrados em `docs/JGFC-1-validation.md`. Os relatórios Playwright e screenshots são gerados fora do Git e enviados como artifacts no CI. A configuração Lighthouse prepara três medições por perfil e relatórios HTML/JSON com medianas, ambiente, LCP, CLS e TBT. Não foram realizadas auditorias finais neste marco; início e detalhe ainda serão implementados.
+Os comandos e resultados reais são registrados em `docs/validation.md`. Os relatórios Playwright e screenshots são gerados fora do Git e enviados como artifacts no CI. A configuração Lighthouse prepara três medições por perfil e relatórios HTML/JSON com medianas, ambiente, LCP, CLS e TBT. Não foram realizadas auditorias finais neste marco; início e detalhe ainda serão implementados.
