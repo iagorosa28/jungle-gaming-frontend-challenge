@@ -118,7 +118,7 @@ test('refresh reseta fixture; layout e acesso por teclado funcionam', async ({ p
 
 test('rota inicial, cenário inválido e página inexistente', async ({ page }) => {
   await page.goto('/')
-  await expect(page).toHaveURL(/\/spike\?scenario=success/)
+  await expect(page.getByRole('heading', { name: 'Todos os NFTs' })).toBeVisible()
   await page.goto('/spike?scenario=invalid')
   await expect(page.getByTestId('nft-price')).toHaveText('1.19 ETH')
   await page.goto('/nao-existe')

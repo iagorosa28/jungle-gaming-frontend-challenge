@@ -3,6 +3,9 @@ import { toSocketIo } from '@mswjs/socket.io-binding'
 import Decimal from 'decimal.js'
 import { emitInputSchema, scenarioSchema, type NftUpdated } from '@/shared/contracts/spike'
 import { createSnapshot } from './fixtures'
+import { marketHandlers } from './market/handlers'
+import { subscribe } from './market/events'
+import { expire, state } from './market/store'
 
 // Each document owns an isolated mock server. Refresh restores the same fixture.
 let snapshot = createSnapshot()
@@ -15,6 +18,7 @@ const channel = ws.link(socketUrl.href)
 const clients = new Set<ReturnType<typeof toSocketIo>['client']>()
 
 export const handlers = [
+  ...marketHandlers,
   http.get('/api/spike', async ({ request }) => {
     const scenario = scenarioSchema.safeParse(new URL(request.url).searchParams.get('scenario') ?? 'success')
     if (!scenario.success) return HttpResponse.json({ message: 'Cenário inválido.' }, { status: 400 })
@@ -51,10 +55,19 @@ export const handlers = [
     // The binding supplies handshake/framing; this mock supplies heartbeat.
     const io = toSocketIo(connection)
     clients.add(io.client)
+    const sessionId = new URL(connection.client.url).searchParams.get('sessionId')
+    const unsubscribe = subscribe((event) => {
+      expire()
+      if (event.type === 'order.updated') {
+        if (sessionId !== state.session.id || event.userId !== state.session.user?.id) return
+        io.client.emit(event.type, { ...event, sessionId })
+      } else io.client.emit(event.type, event)
+    })
     const heartbeat = window.setInterval(() => connection.client.send('2'), 20_000)
     connection.client.addEventListener('close', () => {
       window.clearInterval(heartbeat)
       clients.delete(io.client)
+      unsubscribe()
     })
   }),
 ]

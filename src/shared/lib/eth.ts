@@ -1,5 +1,6 @@
 import Decimal from 'decimal.js'
 
 export function formatEth(value: string) {
-  return `${new Decimal(value).toFixed(2)} ETH`
+  const decimal = new Decimal(value)
+  return `${decimal.toFixed(Math.max(2, decimal.decimalPlaces()))} ETH`
 }
