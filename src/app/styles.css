@@ -1,0 +1,49 @@
+@import "tailwindcss" source("../");
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-border: var(--border);
+  --color-ring: var(--primary);
+  --color-success: #b8d8a0;
+  --color-destructive: #ffb0a0;
+}
+
+:root {
+  color-scheme: dark;
+  --background: #150e0a;
+  --foreground: #f5eee6;
+  --card: #211610;
+  --primary: #e9a05b;
+  --primary-foreground: #1b1008;
+  --secondary: #39271c;
+  --muted-foreground: #c3af98;
+  --border: #493426;
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  background: var(--background);
+  color: var(--foreground);
+}
+
+body { margin: 0; min-width: 320px; }
+button, a { -webkit-tap-highlight-color: transparent; }
+button:not(:disabled), a { cursor: pointer; }
+::selection { background: #e9a05b; color: #150e0a; }
+.skeleton { position: relative; overflow: hidden; }
+.skeleton::after {
+  position: absolute; inset: 0; content: "";
+  transform: translateX(-100%);
+  background: linear-gradient(90deg, transparent, #f5eee615, transparent);
+  animation: shimmer 1.5s infinite;
+}
+@keyframes shimmer { 100% { transform: translateX(100%); } }
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+}

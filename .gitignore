@@ -1,1 +1,31 @@
 /referencias-locais/
+
+# Dependencies and local tooling
+node_modules/
+.tools/
+.npm-cache/
+.playwright-browsers/
+
+# Builds and generated reports
+dist/
+*.tsbuildinfo
+playwright-report/
+test-results/
+reports/
+.lighthouseci/
+coverage/
+
+# Local configuration (examples are safe to track)
+.env
+.env.*
+!.env.example
+*.local
+.vercel/
+
+# Editor, OS and logs
+.idea/
+.vscode/*
+!.vscode/extensions.json
+.DS_Store
+Thumbs.db
+*.log
