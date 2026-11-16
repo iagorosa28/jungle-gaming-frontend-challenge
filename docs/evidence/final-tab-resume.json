@@ -1,0 +1,54 @@
+{
+  "viewport": "412 × 924",
+  "browser": "159.0.8154.6",
+  "events": [
+    {
+      "name": "visibilitychange",
+      "visibility": "hidden"
+    },
+    {
+      "name": "visibilitychange",
+      "visibility": "visible"
+    },
+    {
+      "name": "visibilitychange",
+      "visibility": "hidden"
+    },
+    {
+      "name": "visibilitychange",
+      "visibility": "visible"
+    },
+    {
+      "name": "visibilitychange",
+      "visibility": "hidden"
+    },
+    {
+      "name": "visibilitychange",
+      "visibility": "visible"
+    },
+    {
+      "name": "visibilitychange",
+      "visibility": "hidden"
+    },
+    {
+      "name": "freeze",
+      "visibility": "hidden"
+    },
+    {
+      "name": "resume",
+      "visibility": "hidden"
+    },
+    {
+      "name": "visibilitychange",
+      "visibility": "visible"
+    }
+  ],
+  "errors": [],
+  "preserved": [
+    "session",
+    "cart",
+    "orders",
+    "url"
+  ],
+  "socketEvent": "nft.updated"
+}

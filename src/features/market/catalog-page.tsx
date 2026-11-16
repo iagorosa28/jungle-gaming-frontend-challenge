@@ -30,7 +30,7 @@ export function CatalogPage({ search }: { search: CatalogSearch }) {
     </div>
     <section className="catalog-hero" aria-labelledby="hero-title">
       <div className="hero-copy"><p className="hero-eyebrow">Bem-vindo à Kurio</p><h1 id="hero-title"><span className="hero-desktop-title">Seja dono do futuro<br />da arte digital</span><span className="hero-mobile-title">Seja dono da<br />cultura digital</span></h1><p className="hero-description"><span className="hero-desktop-description">Descubra NFTs selecionados de criadores emergentes e consagrados. Colecione arte digital rara e tenha uma parte da cultura da internet.</span><span className="hero-mobile-description">Descubra NFTs selecionados de criadores do mundo todo.</span></p><Link to="/" search={search} hash="colecao" className="hero-explore">Explorar <ArrowRight aria-hidden="true" size={20} /></Link></div>
-      <Link to="/nfts/$nftId" params={{ nftId: 'emerald-042' }} className="hero-art" aria-label="Conhecer Emerald Ape #042"><img src="/art/nfts/emerald-ape.png" alt="Emerald Ape, macaco com óculos e jaqueta verde" width="900" height="900" fetchPriority="high" /><img className="hero-companion" src="/art/nfts/sage-nomad.png" alt="" width="500" height="500" /></Link>
+      <Link to="/nfts/$nftId" params={{ nftId: 'emerald-042' }} className="hero-art" aria-label="Conhecer Emerald Ape #042"><img src="/art/nfts/emerald-ape.png" alt="Emerald Ape, macaco com óculos e jaqueta verde" width="900" height="900" fetchPriority="high" /></Link>
     </section>
     <section id="colecao" className="catalog-section" aria-label="Catálogo de NFTs">
       <CatalogFiltersPanel open={filtersOpen} onOpenChange={setFiltersOpen}>

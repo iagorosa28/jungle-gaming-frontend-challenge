@@ -80,11 +80,10 @@ test('filtros mantêm URL e precisão com conta autenticada e aviso real de Sock
   const hero = (await page.locator('.catalog-hero').boundingBox())!
   if (page.viewportSize()!.width < 600) {
     const mainArt = (await page.locator('.hero-art > img').first().boundingBox())!
-    const companion = (await page.locator('.hero-companion').boundingBox())!
     const title = (await page.locator('#hero-title').boundingBox())!
-    expect(companion.y).toBeLessThan(mainArt.y + mainArt.height)
-    expect(companion.x + companion.width).toBeLessThanOrEqual(hero.x + hero.width)
-    expect(companion.y + companion.height).toBeLessThanOrEqual(hero.y + hero.height)
+    await expect(page.locator('.hero-art img')).toHaveCount(1)
+    expect(mainArt.x + mainArt.width).toBeLessThanOrEqual(hero.x + hero.width)
+    expect(mainArt.y + mainArt.height).toBeLessThanOrEqual(hero.y + hero.height)
     expect(title.x + title.width).toBeLessThanOrEqual(mainArt.x)
   }
   await page.getByRole('button', { name: 'Filtros', exact: true }).click()
