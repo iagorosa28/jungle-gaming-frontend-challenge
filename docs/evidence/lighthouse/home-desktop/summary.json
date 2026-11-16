@@ -1,0 +1,86 @@
+{
+  "purpose": "Auditoria da página técnica atual; não equivale à avaliação final de início/detalhe.",
+  "profile": "desktop",
+  "runs": 3,
+  "node": "v24.22.2",
+  "platform": "win32",
+  "measurements": [
+    {
+      "lighthouseVersion": "13.6.0",
+      "environment": {
+        "networkUserAgent": "Mozilla/5.0 (Linux; Android 11; moto g power (2022)) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/157.0.0.0 Mobile Safari/537.36",
+        "hostUserAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/157.0.0.0 Safari/537.36",
+        "benchmarkIndex": 2957.5,
+        "credits": {
+          "axe-core": "4.14.0"
+        }
+      },
+      "fetchTime": "2026-11-16T10:32:27.727Z",
+      "url": "http://127.0.0.1:4173/?q=&sort=recent&page=1",
+      "categories": {
+        "performance": 0.99,
+        "accessibility": 1,
+        "best-practices": 1,
+        "seo": 0.92
+      },
+      "lcp": 824.08375,
+      "cls": 0.06730291215349499,
+      "tbt": 0
+    },
+    {
+      "lighthouseVersion": "13.6.0",
+      "environment": {
+        "networkUserAgent": "Mozilla/5.0 (Linux; Android 11; moto g power (2022)) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/157.0.0.0 Mobile Safari/537.36",
+        "hostUserAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/157.0.0.0 Safari/537.36",
+        "benchmarkIndex": 3002,
+        "credits": {
+          "axe-core": "4.14.0"
+        }
+      },
+      "fetchTime": "2026-11-16T10:32:35.457Z",
+      "url": "http://127.0.0.1:4173/?q=&sort=recent&page=1",
+      "categories": {
+        "performance": 0.99,
+        "accessibility": 1,
+        "best-practices": 1,
+        "seo": 0.92
+      },
+      "lcp": 857.75125,
+      "cls": 0.06719380365857347,
+      "tbt": 0
+    },
+    {
+      "lighthouseVersion": "13.6.0",
+      "environment": {
+        "networkUserAgent": "Mozilla/5.0 (Linux; Android 11; moto g power (2022)) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/157.0.0.0 Mobile Safari/537.36",
+        "hostUserAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/157.0.0.0 Safari/537.36",
+        "benchmarkIndex": 3014,
+        "credits": {
+          "axe-core": "4.14.0"
+        }
+      },
+      "fetchTime": "2026-11-16T10:32:42.919Z",
+      "url": "http://127.0.0.1:4173/?q=&sort=recent&page=1",
+      "categories": {
+        "performance": 0.99,
+        "accessibility": 1,
+        "best-practices": 1,
+        "seo": 0.92
+      },
+      "lcp": 866.30375,
+      "cls": 0.06730291215349499,
+      "tbt": 0
+    }
+  ],
+  "medians": {
+    "performance": 0.99,
+    "accessibility": 1,
+    "best-practices": 1,
+    "seo": 0.92
+  },
+  "metrics": {
+    "lcp": 857.75125,
+    "cls": 0.06730291215349499,
+    "tbt": 0
+  }
+}

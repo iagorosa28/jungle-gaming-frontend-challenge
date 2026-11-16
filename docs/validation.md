@@ -18,6 +18,54 @@ Validação de 15/11/2026 em Windows, Node 24.22.2, npm 11.19.1, Vite 8.3.8 e Pl
 npm run test:e2e:dev -- --project chromium-390 --workers 2 --grep "painel sobreposto|filtros mantêm URL|layout, assets"
 ```
 
+## Auditoria Lighthouse — 16/11/2026
+
+Auditoria realizada no build otimizado do Vite, servido localmente
+por `npm run preview`, com MSW habilitado. Ambiente: Windows,
+Node 24.22.2, Lighthouse 13.6.0 e Chromium Headless 157.
+
+Foram realizadas três execuções para cada combinação de página
+e perfil (mobile e desktop), totalizando 12 medições. Os valores
+abaixo representam as medianas registradas pelo script.
+
+| Página | Perfil | Performance | Acessibilidade | Boas práticas | SEO | LCP (ms) | CLS | TBT (ms) |
+| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| Início | Mobile | 80 | 100 | 100 | 92 | 3482 | 0,211 | 106 |
+| Início | Desktop | 99 | 100 | 100 | 92 | 858 | 0,067 | 0 |
+| Detalhe do NFT | Mobile | 83 | 100 | 100 | 92 | 3419 | 0,188 | 57 |
+| Detalhe do NFT | Desktop | 99 | 100 | 100 | 92 | 795 | 0,043 | 0 |
+
+Metas do desafio: Performance ≥ 90, Acessibilidade ≥ 95,
+Boas práticas ≥ 95 e SEO ≥ 90.
+
+### Análise dos resultados
+
+As quatro auditorias atingiram as metas de acessibilidade,
+boas práticas e SEO. Os perfis desktop também atingiram a meta
+de performance, com nota 99 nas duas páginas.
+
+A performance mobile ficou abaixo da meta: 80 na página inicial
+e 83 no detalhe do NFT. As principais métricas a investigar
+são LCP e CLS. Na página inicial, o Lighthouse sinalizou o
+carregamento adiado da imagem principal do catálogo e
+deslocamentos visuais envolvendo o rodapé.
+
+Esses diagnósticos são evidências para investigação, não
+comprovação definitiva das causas. Nenhuma otimização de
+performance foi aplicada após estas medições.
+
+### Evidências
+
+Os relatórios HTML e JSON das três execuções, acompanhados dos resumos e medianas, estão organizados nos seguintes diretórios para inclusão no repositório:
+
+- `docs/evidence/lighthouse/home-mobile/`
+- `docs/evidence/lighthouse/home-desktop/`
+- `docs/evidence/lighthouse/detail-mobile/`
+- `docs/evidence/lighthouse/detail-desktop/`
+
+As auditorias usaram ambiente local e mocks simulados. Os
+resultados não representam uma medição da hospedagem pública.
+
 ## Regressão da autenticação
 
 O [trace do CI anterior](https://github.com/iagorosa28/jungle-gaming-frontend-challenge/actions/runs/43759723893) mostra navegação completa para `/cart` imediatamente após o clique de login, antes do término do POST. O documento responsável pelo handler MSW foi encerrado e a sessão seguinte continuou como visitante. O carrinho de 1 unidade observado era o visitante, não o carrinho mesclado de 3 unidades.
