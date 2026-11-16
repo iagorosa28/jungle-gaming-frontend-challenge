@@ -2,9 +2,11 @@
 
 ## Escopo e interface
 
-O [enunciado oficial](https://github.com/junglegaming/frontend-challenge/blob/main/README.md) define o produto completo. A jornada atual é catálogo básico → sessão → carrinho → cotação → revisão → pedido pendente → confirmação/recusa. `/spike` permanece independente.
+O [enunciado oficial](https://github.com/junglegaming/frontend-challenge/blob/main/README.md) define o produto completo. A jornada atual é descoberta com busca/filtros/paginação → sessão → carrinho → cotação → revisão → pedido pendente → confirmação/recusa. `/spike` permanece independente.
 
-O Figma e os PNGs locais acessíveis orientam fundo escuro, cartões arredondados, tipografia monoespaçada e acentos cobre. Tokens/fonte são aproximações: a fonte exata e os assets exportáveis não foram confirmados. `public/art/*.svg` contém substituições geométricas locais incluídas no build. Screenshots não compõem a interface. Fidelidade visual final permanece pendente.
+A identidade da home segue os PNGs de referência e os tokens confirmados: Roboto Mono 400/500/700, fundo `#140D0A`, foreground `#F5F1EB`, primária `#D28A4C`, accent `#E89B55`, secundária `#CFB28C`, card `#241612`, superfície escura `#38220F`, borda `#3F2319`. Tokens estão centralizados em CSS e expostos ao Tailwind/shadcn. Fontsource fornece arquivos locais e sua licença acompanha o build. `public/art/nfts` contém somente quatro artes individuais; screenshots completos do Figma não são assets da interface.
+
+Desktop usa conteúdo de até 1.200 px e sidebar de 310 px. Tablet e mobile usam filtros expansíveis sem modal nem captura de foco; botão informa `aria-expanded`/`aria-controls`. Categorias/redes usam radios nativos. Preços têm campos explícitos para permitir precisão e teclado, em lugar do slider ilustrativo. Os cards mantêm acesso ao detalhe e adição ao carrinho. Hero mobile adapta a composição com arte secundária; carrossel, favoritos e áreas editoriais não são simulados. Outras telas recebem apenas os tokens e o header compartilhados; não foram redesenhadas.
 
 ## Responsabilidades
 
@@ -18,7 +20,7 @@ O Figma e os PNGs locais acessíveis orientam fundo escuro, cartões arredondado
 | `src/mocks/market` | Estado autoritativo, persistência, sessão, estoque, preços e pedidos |
 | `tests/e2e` | Playwright com REST/MSW e Socket.IO efetivos |
 
-Router controla navegação/retorno de login. Query controla dados remotos. React mantém formulário, seleção, revisão e feedback efêmeros. A tentativa autorizada é um registro de recuperação, não um pedido confirmado. Componentes e Axios não possuem fixtures ou cálculos/regras de negócio.
+Router controla navegação, retorno de login e parâmetros do catálogo. A serialização preserva strings sem conversão implícita de JSON/números, evitando perda de precisão de preços em links diretos. Somente `page` é convertida explicitamente por Zod. Query controla dados remotos. React mantém formulário, seleção, revisão e feedback efêmeros. A tentativa autorizada é um registro de recuperação, não um pedido confirmado. Componentes e Axios não possuem fixtures ou cálculos/regras de negócio.
 
 `src/main.tsx` inicia MSW antes de renderizar. Mocks também entram no build. `VITE_ENABLE_MOCKS` aceita `true`/`false`, padrão `true`; configuração inválida/falha do worker interrompe bootstrap com erro visível. Desativar mocks não oferece backend real.
 
@@ -34,7 +36,8 @@ Recursos de escopo enviam `X-Mock-Session`, identificador fictício rotacionado 
 | `POST /session/register` | `{ name, email, password }` → sessão; conflito 409 |
 | `POST /session/login` | `{ email, password }` → sessão; credenciais inválidas 401 |
 | `POST /session/logout` | Encerra escopo → visitante |
-| `GET /nfts`, `GET /nfts/:id` | Lista/detalhe: id, nome, edição, preço, disponibilidade, versão, arte, descrição |
+| `GET /nfts` | Parâmetros abaixo → `{ items, total, page, pageSize: 9, pages }` |
+| `GET /nfts/:id` | NFT: id, nome, edição, preço, disponibilidade, versão, arte, descrição, categoria, rede, listedAt |
 | `GET /cart` | `{ items: [{ nftId, edition, quantity }], revision }` |
 | `POST /cart/items` | Item → soma quantidade e retorna carrinho |
 | `PUT /cart/items` | Item → substitui quantidade com validação |
@@ -77,11 +80,28 @@ Pedido: `{ id, userId, key, input, status, version, quote, createdAt, resolveAt,
 
 Cenários estão no README. `timeout` representa HTTP 504 após commit e atraso de 1,2 s. Axios mantém timeout geral de 8 s. Erro de transporte também pode ser recuperado com consulta/reenvio da mesma chave.
 
+## Consulta do catálogo
+
+| Parâmetro | Valores / padrão |
+| --- | --- |
+| `q` | Texto de até 100 caracteres; padrão vazio; trim, sem distinção de caixa/acentos, nome e descrição |
+| `category` | Opcional: digital, photography, music, 3d, collectibles, generative, games |
+| `network` | Opcional: ethereum, polygon |
+| `min`, `max` | Strings positivas ou zero, até seis dígitos inteiros e 18 casas; limites inclusivos; min ≤ max |
+| `sort` | recent (padrão), price-asc, price-desc |
+| `page` | Inteiro entre 1 e 10.000; padrão 1; limitado pela API ao último resultado |
+
+API valida estritamente e retorna 400 para parâmetros inválidos. A URL aplica padrões seguros por campo, descartando o par de preços quando a faixa é invertida. Uma lista vazia retorna total/pages 0 e page 1. Ordenação recente usa `listedAt` decrescente; preços usam decimal.js; empates usam ID. A rede descreve o NFT e o filtro; não altera os contratos de carteira e checkout existentes.
+
+Os 21 itens têm três páginas, sete categorias e duas redes. IDs, preço e estoque dos três itens anteriores são preservados. Reidratação válida enriquece o catálogo anterior com metadados/novas fixtures e mantém preços, estoque, versões, carrinhos, sessão, pedidos e snapshots. Estado inválido restaura as fixtures. Reset também limpa condições de rede.
+
+`POST /demo` aceita `{ action: 'network', catalog, loginDelayMs }`. Modos do catálogo: normal (80 ms), slow (1.200 ms), http-error (503), network-error (`HttpResponse.error`) e out-of-order (1.500 ms com q de até um caractere, 100 ms nas demais consultas). Snapshot é capturado antes da latência, permitindo resposta antiga fora de ordem. Login aceita atraso de 0–3.000 ms antes de validar a sessão e mesclar os carrinhos. Controles ficam nos mocks, persistem com validação Zod e são públicos apenas para demonstração.
+
 ## Cache e ciclo de vida
 
-Chaves: `['session']`, `['market', sessionId, recurso, ...id]` e `['spike', scenario]`. Recursos incluem catálogo, detalhe, carrinho, cotação, carteiras, pedidos, recibos e tentativas. Sessões diferentes da mesma conta também têm chaves diferentes. `staleTime: 0`, sem retry automático/refetch por foco. Mutations de pedido não repetem com chave nova.
+Chaves: `['session']`, `['market', sessionId, recurso, ...id]` e `['spike', scenario]`. Catálogo usa `['market', sessionId, 'catalog', { q, category, network, min, max, sort, page }]`. Recursos incluem catálogo, detalhe, carrinho, cotação, carteiras, pedidos, recibos e tentativas. Sessões diferentes da mesma conta também têm chaves diferentes. `staleTime: 0`, sem retry automático/refetch por foco. Mutations de pedido não repetem com chave nova.
 
-Consultas recebem AbortSignal. Uma tentativa autorizada pode continuar no mock após cancelamento do observador, sendo recuperada posteriormente. Troca de sessão cancela/remove queries, descarta mutations do escopo e desmonta listeners/componentes. Respostas antigas não são copiadas ao novo escopo.
+Consultas recebem AbortSignal. A lista não usa placeholder da combinação anterior; cada alteração inicia skeleton ou recupera somente cache da mesma combinação com indicador de atualização. Submissão explícita da busca evita requisição por tecla. Eventos invalidam todas as combinações, pois preços podem mudar a inclusão/ordenação/paginação. A UI renderiza erro, vazio, sucesso e refetch separadamente. Uma tentativa autorizada pode continuar no mock após cancelamento do observador, sendo recuperada posteriormente. Troca de sessão cancela/remove queries, descarta mutations do escopo e desmonta listeners/componentes. Respostas antigas não são copiadas ao novo escopo.
 
 Edição/remoção do carrinho atualiza sua lista otimisticamente, com snapshot anterior e rollback em erro; rollback não recria dados de uma sessão encerrada. Ao finalizar, invalida os recursos para reconciliar por REST. Valores monetários e pedidos aguardam a API. Eventos também invalidam recursos. Pedido pendente tem polling de 2 s como recuperação complementar. Toda conexão/reconexão invalida recursos ativos.
 
@@ -102,8 +122,10 @@ Reconexão automática: três tentativas, atraso inicial 500 ms, sem jitter. Des
 
 ## Build, evidências e limites
 
-Vite copia assets/worker a `dist`; rewrites Vercel preservam assets e rotas SPA. Exige HTTPS/localhost, Service Worker e WebSocket. Fundação já publicada em Production; esta evolução não executa deployment.
+Vite copia assets/worker a `dist`; rewrites Vercel preservam assets e rotas SPA. Exige HTTPS/localhost, Service Worker e WebSocket. Jornada de compra já publicada em Production; esta evolução do catálogo não executa deployment.
 
 Playwright usa build otimizado/servidor próprio e 390/768/1440 px, sem interceptações artificiais substituindo rede. Controles REST resolvem pendências/repetem eventos deterministicamente. Resultados em [docs/validation.md](docs/validation.md).
 
-Sem baselines visuais novos ou auditoria final Lighthouse nesta etapa. Catálogo avançado, favoritos, perfil, gestão de carteiras, cupons, fidelidade final e concorrência entre documentos permanecem pendentes.
+Regressão visual usa configuração separada (`playwright.visual.config.ts`), comparação sem pixels divergentes, movimento reduzido e espera explícita por fontes/imagens. Snapshots iniciais Chromium/Windows em três viewports são versionados; geração/atualização automática é desativada. Baselines de outros sistemas e execução visual no CI ainda não estão disponíveis.
+
+Auditoria final Lighthouse, galeria completa, favoritos, perfil, gestão de carteiras, cupons e concorrência entre documentos permanecem pendentes. A fidelidade de áreas editoriais e outras telas está fora desta evolução.

@@ -1,9 +1,35 @@
 import { z } from 'zod'
+import Decimal from 'decimal.js'
 import { ethSchema, nftSchema } from './spike'
 
 export const quantitySchema = z.number().int().min(1).max(10)
 export const itemSchema = z.object({ nftId: z.string().min(1), edition: z.literal('standard'), quantity: quantitySchema })
-export const catalogNftSchema = nftSchema.extend({ edition: z.literal('standard'), description: z.string(), artwork: z.string() })
+export const categories = { digital: 'Arte digital', photography: 'Fotografia', music: 'Música', '3d': 'Arte 3D', collectibles: 'Colecionáveis', generative: 'Generativa', games: 'Jogos' } as const
+export const categorySchema = z.enum(['digital', 'photography', 'music', '3d', 'collectibles', 'generative', 'games'])
+export const networkSchema = z.enum(['ethereum', 'polygon'])
+export const catalogNftSchema = nftSchema.extend({
+  edition: z.literal('standard'), description: z.string(), artwork: z.string(),
+  category: categorySchema.default('digital'), network: networkSchema.default('ethereum'), listedAt: z.number().int().default(0),
+})
+const priceFilter = z.string().regex(/^(0|[1-9]\d{0,5})(\.\d{1,18})?$/)
+export const catalogSearchSchema = z.object({
+  q: z.string().trim().max(100).default(''), category: categorySchema.optional(), network: networkSchema.optional(),
+  min: priceFilter.optional(), max: priceFilter.optional(),
+  sort: z.enum(['recent', 'price-asc', 'price-desc']).default('recent'),
+  page: z.coerce.number().int().min(1).max(10000).default(1),
+}).refine(s => s.min === undefined || s.max === undefined || !priceFilter.safeParse(s.min).success || !priceFilter.safeParse(s.max).success || new Decimal(s.min).lte(s.max), { message: 'O preço mínimo deve ser menor ou igual ao máximo.' })
+export type CatalogSearch = z.infer<typeof catalogSearchSchema>
+// Invalid URL values fall back independently; REST uses the strict schema above.
+export function catalogSearchFromUrl(raw: Record<string, unknown>): CatalogSearch {
+  const shape = catalogSearchSchema.shape
+  const values = { q: shape.q.catch('').parse(raw.q), sort: shape.sort.catch('recent').parse(raw.sort), page: shape.page.catch(1).parse(raw.page), category: shape.category.catch(undefined).parse(raw.category), network: shape.network.catch(undefined).parse(raw.network), min: shape.min.catch(undefined).parse(raw.min), max: shape.max.catch(undefined).parse(raw.max) }
+  const result = catalogSearchSchema.safeParse(values)
+  if (result.success) return result.data
+  return catalogSearchSchema.parse({ ...values, min: undefined, max: undefined })
+}
+export const catalogResponseSchema = z.object({ items: z.array(catalogNftSchema), total: z.number().int().nonnegative(), page: z.number().int().positive(), pageSize: z.literal(9), pages: z.number().int().nonnegative() })
+export type CatalogResponse = z.infer<typeof catalogResponseSchema>
+export const networkConditionsSchema = z.object({ catalog: z.enum(['normal', 'slow', 'http-error', 'network-error', 'out-of-order']).default('normal'), loginDelayMs: z.number().int().min(0).max(3000).default(0) })
 export const cartSchema = z.object({ items: z.array(itemSchema), revision: z.number().int().nonnegative() })
 export const userSchema = z.object({ id: z.string(), name: z.string(), email: z.email() })
 export const sessionSchema = z.object({ id: z.string(), user: userSchema.nullable(), expiresAt: z.number().nullable() })
@@ -26,6 +52,7 @@ export const orderSchema = z.object({
 export const attemptSchema = z.object({ key: z.string().uuid(), input: orderInputSchema })
 export const scenarioSchema = z.enum(['success', 'declined', 'timeout', 'pending', 'price-change', 'sold-out'])
 export const demoInputSchema = z.discriminatedUnion('action', [
+  z.object({ action: z.literal('network'), ...networkConditionsSchema.shape }),
   z.object({ action: z.literal('reset'), scenario: scenarioSchema }),
   z.object({ action: z.enum(['price', 'stock', 'expire', 'settle', 'duplicate', 'stale']), broadcast: z.boolean().default(true) }),
 ])

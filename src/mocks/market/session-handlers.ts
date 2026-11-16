@@ -1,4 +1,4 @@
-import { http } from 'msw'
+import { delay, http } from 'msw'
 import { loginSchema, registerSchema } from '@/shared/contracts/market'
 import { ApiError, endpoint, scope } from './http'
 import { digest, emptyCart, expire, guestSession, publicUser, save, state } from './store'
@@ -8,6 +8,7 @@ export const sessionHandlers = [
   ...(['login', 'register'] as const).map(action => http.post(`/api/session/${action}`, endpoint(async request => {
     scope(request)
     const scopeId = state.session.id
+    await delay(state.networkConditions.loginDelayMs)
     const raw = await request.json()
     const input = loginSchema.parse(raw)
     let user = state.users.find(u => u.email === input.email)

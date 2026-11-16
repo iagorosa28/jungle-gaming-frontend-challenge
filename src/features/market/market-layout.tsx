@@ -39,17 +39,18 @@ function ScopedLayout({ session }: { session: Session }) {
     client.removeQueries({ queryKey: marketKey(session.id) })
     client.setQueryData(sessionKey, result)
   } })
-  return <main id="conteudo" className="market">
-    <nav aria-label="Marketplace" className="mb-6 flex flex-wrap items-center gap-3 text-sm">
-      <Link to="/" className="nav-link">Explorar NFTs</Link><Link to="/cart" className="nav-link">Carrinho ({cart.data?.items.reduce((sum, i) => sum + i.quantity, 0) ?? 0})</Link>
-      {session.user ? <><Link to="/orders" className="nav-link">Meus pedidos</Link><span className="text-muted-foreground">{session.user.name}</span><Button variant="ghost" disabled={logout.isPending} onClick={() => logout.mutate()}>Sair</Button></> : <Link to="/login" search={{ returnTo: '/checkout' }} className="nav-link">Entrar</Link>}
+  return <div className="market">
+    <header className="market-header"><Link to="/" className="site-brand" aria-label="Kurio, início">KURIO</Link><nav aria-label="Marketplace" className="market-nav">
+      <Link to="/" activeOptions={{ exact: true, includeSearch: false }} className="nav-link">Início</Link><a href="/#colecao">Mercado</a><Link to="/cart" className="nav-link">Carrinho ({cart.data?.items.reduce((sum, i) => sum + i.quantity, 0) ?? 0})</Link>
+      {session.user ? <><Link to="/orders" className="nav-link">Meus pedidos</Link><span className="text-muted-foreground">{session.user.name}</span><Button variant="ghost" disabled={logout.isPending} onClick={() => logout.mutate()}>Sair</Button></> : <Link to="/login" search={{ returnTo: '/checkout' }} className="login-link">Entrar</Link>}
       <Link to="/demo" className="nav-link">Cenários</Link>
-    </nav>
-    <div className="mb-6 flex flex-wrap items-center gap-3 text-xs text-muted-foreground"><span data-testid="market-socket">{realtime.connected ? 'Tempo real conectado' : 'Tempo real desconectado'}</span><button className="underline" onClick={realtime.toggle}>{realtime.connected ? 'Desconectar tempo real' : 'Reconectar tempo real'}</button><span data-testid="market-events">{realtime.received} eventos · {realtime.ignored} ignorados</span></div>
+    </nav></header>
     {realtime.notice && <p role="status" className="mb-6 rounded-xl border border-border p-3 text-sm text-primary">{realtime.notice}</p>}
     {logout.isError && <Failure error={logout.error} />}
-    <Outlet />
-  </main>
+    <main id="conteudo"><Outlet /></main>
+    <section className="realtime-tools" aria-label="Simulação e tempo real">    <div className="mb-6 flex flex-wrap items-center gap-3 text-xs text-muted-foreground"><span data-testid="market-socket">{realtime.connected ? 'Tempo real conectado' : 'Tempo real desconectado'}</span><button className="underline" onClick={realtime.toggle}>{realtime.connected ? 'Desconectar tempo real' : 'Reconectar tempo real'}</button><span data-testid="market-events">{realtime.received} eventos · {realtime.ignored} ignorados</span></div>
+    </section>
+  </div>
 }
 export function PrivatePage({ children }: { children: React.ReactNode }) {
   const { data } = useSession()

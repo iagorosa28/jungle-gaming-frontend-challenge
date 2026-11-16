@@ -1,7 +1,7 @@
 import axios from 'axios'
 import { z } from 'zod'
 import { http } from '@/shared/api/http'
-import { cartSchema, catalogNftSchema, orderSchema, quoteSchema, sessionSchema, walletSchema, type Attempt, type DemoInput } from '@/shared/contracts/market'
+import { cartSchema, catalogNftSchema, catalogResponseSchema, orderSchema, quoteSchema, sessionSchema, walletSchema, type Attempt, type DemoInput, type CatalogSearch } from '@/shared/contracts/market'
 
 export const marketKey = (scope: string) => ['market', scope] as const
 export const sessionKey = ['session'] as const
@@ -18,7 +18,7 @@ export function marketApi(scope: string) {
     }
   }
   return {
-    catalog: (signal?: AbortSignal) => run(http.get('/nfts', { signal }), z.array(catalogNftSchema)),
+    catalog: (params: CatalogSearch, signal?: AbortSignal) => run(http.get('/nfts', { params, signal }), catalogResponseSchema),
     nft: (id: string, signal?: AbortSignal) => run(http.get(`/nfts/${id}`, { signal }), catalogNftSchema),
     cart: (signal?: AbortSignal) => run(http.get('/cart', { ...config, signal }), cartSchema),
     editCart: (input: { nftId: string; edition: 'standard'; quantity: number; mode: 'add' | 'update' | 'remove' }) => run(

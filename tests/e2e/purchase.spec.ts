@@ -19,9 +19,17 @@ async function add(page: Page) {
   await expect(page.getByText('Adicionado.', { exact: false })).toBeVisible()
 }
 async function login(page: Page, email = 'ana@example.test') {
+  const returnUrl = new URL(new URL(page.url()).searchParams.get('returnTo') ?? '/checkout', page.url()).href
   await page.getByLabel('E-mail', { exact: true }).fill(email)
   await page.getByLabel('Senha', { exact: true }).fill('Demo123!')
+  const authenticated = page.waitForResponse(response => response.url().endsWith('/api/session/login') && response.request().method() === 'POST')
   await page.getByRole('button', { name: 'Entrar e continuar' }).click()
+  const response = await authenticated
+  expect(response.status()).toBe(200)
+  expect(response.fromServiceWorker()).toBe(true)
+  expect((await response.json()).user.email).toBe(email)
+  await expect(page).toHaveURL(returnUrl)
+  await expect(page.getByRole('button', { name: 'Sair', exact: true })).toBeVisible()
 }
 async function checkout(page: Page, wallet = 'demo-main') {
   await add(page)
@@ -44,7 +52,7 @@ async function confirm(page: Page) {
 
 test('compra completa preserva carrinho visitante, sessão e snapshot imutável do recibo', async ({ page }, info) => {
   await open(page)
-  await expect(page.getByRole('button', { name: 'Adicionar ao carrinho' })).toHaveCount(3)
+  await expect(page.getByRole('button', { name: 'Adicionar ao carrinho' })).toHaveCount(9)
   await page.screenshot({ path: info.outputPath('purchase-catalog.png'), fullPage: true })
   await info.attach('catálogo', { path: info.outputPath('purchase-catalog.png'), contentType: 'image/png' })
   await add(page)
@@ -88,6 +96,7 @@ test('compra completa preserva carrinho visitante, sessão e snapshot imutável 
 
 test('reconcilia carrinhos da conta e visitante deterministicamente e permite remover', async ({ page }) => {
   await open(page)
+  await api(page, '/demo', 'POST', { action: 'network', loginDelayMs: 800 })
   await api(page, '/session/login', 'POST', { email: 'ana@example.test', password: 'Demo123!' })
   await api(page, '/cart/items', 'POST', { nftId: 'emerald-042', edition: 'standard', quantity: 2 })
   await api(page, '/session/logout', 'POST', {})
@@ -96,6 +105,9 @@ test('reconcilia carrinhos da conta e visitante deterministicamente e permite re
   await page.goto('/checkout')
   await login(page)
   await page.goto('/cart')
+  await expect(page.getByLabel('Quantidade de Emerald Ape #042')).toHaveValue('3')
+  expect((await api(page, '/cart')).data.items[0].quantity).toBe(3)
+  await page.reload()
   await expect(page.getByLabel('Quantidade de Emerald Ape #042')).toHaveValue('3')
   await page.getByLabel('Quantidade de Emerald Ape #042').fill('6')
   await expect(page.getByRole('alert')).toContainText('Quantidade indisponível')

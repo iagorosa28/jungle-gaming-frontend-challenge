@@ -1,4 +1,4 @@
-import { createRootRoute, createRoute, createRouter, Link, redirect } from '@tanstack/react-router'
+import { createRootRoute, createRoute, createRouter, Link, redirect, stringifySearchWith, type SearchSchemaInput } from '@tanstack/react-router'
 import { scenarioSchema } from '@/shared/contracts/spike'
 import { SpikePage } from '@/features/spike/spike-page'
 import { Layout } from './layout'
@@ -11,6 +11,7 @@ import { OrderPage, OrdersPage } from '@/features/market/orders-page'
 import { DemoPage } from '@/features/market/demo-page'
 import { session } from '@/features/market/api'
 import { safeReturn } from '@/features/market/session'
+import { catalogSearchFromUrl } from '@/shared/contracts/market'
 
 const rootRoute = createRootRoute({
   component: Layout,
@@ -18,7 +19,7 @@ const rootRoute = createRootRoute({
   errorComponent: () => <main id="conteudo" className="p-10"><h1 role="alert">Não foi possível abrir esta página.</h1><a href="/spike" className="text-primary underline">Reabrir o spike</a></main>,
 })
 const marketRoute = createRoute({ getParentRoute: () => rootRoute, id: 'market', component: MarketLayout })
-const indexRoute = createRoute({ getParentRoute: () => marketRoute, path: '/', component: CatalogPage })
+const indexRoute = createRoute({ getParentRoute: () => marketRoute, path: '/', validateSearch: (search: Record<string, unknown> & SearchSchemaInput) => catalogSearchFromUrl(search), component: function CatalogRoute() { return <CatalogPage search={indexRoute.useSearch()} /> } })
 const nftRoute = createRoute({ getParentRoute: () => marketRoute, path: '/nfts/$nftId', component: function NftRoute() { return <NftPage id={nftRoute.useParams().nftId} /> } })
 const cartRoute = createRoute({ getParentRoute: () => marketRoute, path: '/cart', component: CartPage })
 const authSearch = (search: Record<string, unknown>) => ({ returnTo: safeReturn(search.returnTo) })
@@ -41,7 +42,13 @@ const spikeRoute = createRoute({
   },
 })
 
-export const router = createRouter({ routeTree: rootRoute.addChildren([marketRoute.addChildren([indexRoute, nftRoute, cartRoute, loginRoute, registerRoute, checkoutRoute, ordersRoute, orderRoute, demoRoute]), spikeRoute]), defaultPreload: 'intent' })
+export const router = createRouter({
+  routeTree: rootRoute.addChildren([marketRoute.addChildren([indexRoute, nftRoute, cartRoute, loginRoute, registerRoute, checkoutRoute, ordersRoute, orderRoute, demoRoute]), spikeRoute]),
+  // Keep ETH decimals and numeric-looking search text lossless across refresh/history.
+  parseSearch: search => Object.fromEntries(new URLSearchParams(search)),
+  stringifySearch: stringifySearchWith(JSON.stringify),
+  defaultPreload: 'intent',
+})
 
 declare module '@tanstack/react-router' {
   interface Register { router: typeof router }
