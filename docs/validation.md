@@ -9,13 +9,13 @@ Validação de 15/11/2026 em Windows, Node 24.22.2, npm 11.19.1, Vite 8.3.8 e Pl
 | `npm run lint` | Aprovado, zero warnings |
 | `npm run typecheck` | Aprovado |
 | `npm run build` | Aprovado; MSW, quatro artes PNG e Roboto Mono incluídos em dist |
-| `npm test` | 114 aprovados, zero falhas, 4,2 min; 38 cenários por viewport |
-| `npm run test:visual` | 4 aprovados; 390, 414, 768 e 1440 px; zero pixels divergentes |
-| Vite/React StrictMode, comando abaixo | 7 aprovados; Cenários, slider, layout e reset da persistência em 390 px |
+| `npm test` | 120 aprovados, zero falhas, 4,3 min; 40 cenários por projeto |
+| `npm run test:visual` | 10 aprovados; home e navegação, incluindo 390 × 568 e 414 × 896; zero pixels divergentes |
+| Vite/React StrictMode, comando abaixo | 3 aprovados; painel, filtros com conta/Socket.IO e layout em 390 px |
 | `git diff --check` | Aprovado |
 
 ```sh
-npm run test:e2e:dev -- --project chromium-390 --workers 2 --grep "Cenários|reset restaura|restaurar rede|contagens vêm|layout, assets"
+npm run test:e2e:dev -- --project chromium-390 --workers 2 --grep "painel sobreposto|filtros mantêm URL|layout, assets"
 ```
 
 ## Regressão da autenticação
@@ -32,7 +32,7 @@ O catálogo explica falhas forçadas sem alterar o significado de Tentar novamen
 
 ## Cobertura
 
-Os 38 cenários por viewport incluem 12 do catálogo, 4 de Cenários, 14 da compra e 8 do spike. A suíte usa Axios/REST com MSW e transporte Socket.IO efetivo, sem `page.route` ou respostas alternativas no cliente.
+Os 40 cenários por projeto incluem 12 do catálogo, 4 de Cenários, 2 de navegação, 14 da compra e 8 do spike. Os testes de navegação usam explicitamente 390 × 568, 414 × 896 e 768 × 1024; o restante mantém 390, 768 e 1440 px. A suíte usa Axios/REST com MSW e transporte Socket.IO efetivo, sem `page.route` ou respostas alternativas no cliente.
 
 | Área | Verificações |
 | --- | --- |
@@ -44,17 +44,30 @@ Os 38 cenários por viewport incluem 12 do catálogo, 4 de Cenários, 14 da comp
 | Tempo real | Preço/estoque e pedidos via Socket.IO, REST após reconexão, duplicatas/versões antigas |
 | Compra | Visitante/conta, quantidades/remoção, sessão/expiração, isolamento, revisão, confirmação e recibo imutável |
 | Recuperação | Recusa, conflito de preço/estoque, idempotência, timeout após criação, pending e refresh |
-| Interface | Assets e fonte locais, teclado, detalhe e ausência de overflow nos três viewports |
+| Navegação | Drawer sem deslocar o catálogo; foco inicial/cíclico/restaurado; Escape, botão e backdrop; rolagem interna, fundo bloqueado, resize e filtros precisos com conta e Socket.IO |
+| Interface | Header sticky, âncoras e campos focados livres de obstrução; assets locais, hero sobreposto, teclado, detalhe e ausência de overflow |
 
 Relatório principal: `playwright-report/index.html` (`npm run test:report`). Capturas/recibo JSON são anexados aos testes; falhas produzem trace e screenshot em `test-results/`. CI disponibiliza os artifacts por 14 dias. Relatório visual independente: `playwright-report/visual/index.html`. Relatórios gerados não são versionados.
 
+## Navegação responsiva
+
+O painel modal permite combinar filtros sem deslocar a listagem. Seu header e footer ficam fora da área de rolagem interna; a camada modal cobre a navegação inferior. Fechar restaura foco e posição da página, preservando os filtros aplicados na URL. Os testes verificam o ciclo de Tab/Shift+Tab e a limpeza do bloqueio de rolagem ao mudar para desktop.
+
+O header desktop permanece acessível ao rolar. Sua altura medida determina o espaço de rolagem; os testes navegam por âncora, focam controles e usam busca/carrinho com o header fixado. Conta autenticada e eventos Socket.IO são exercitados com o painel aberto, sem retirar seu foco. A composição de duas artes no hero permanece inalterada.
+
 ## Evidências visuais
 
-As referências visuais foram reavaliadas para as mudanças intencionais de header, busca, navegação mobile, sidebar/slider, proporções e botões. As diferenças foram inspecionadas contra as imagens anteriores e os PNGs locais antes da promoção manual das capturas. O teste mantém zero pixels divergentes e atualização automática desativada; 414 px complementa a cobertura de 390 px.
+As quatro baselines anteriores da home permanecem inalteradas. A cobertura inclui também a home em 390 × 568, o painel aberto nos quatro tamanhos compactos e o header desktop após navegar até o catálogo. As seis novas capturas foram inspecionadas antes da promoção manual; o teste mantém zero pixels divergentes e atualização automática desativada. A composição sobreposta do hero foi preservada.
 
 | 390 px | 414 px | 768 px | 1440 px |
 | --- | --- | --- | --- |
 | [Home mobile](../tests/visual/snapshots/win32/chromium-390/catalog-home.png) | [Home mobile](../tests/visual/snapshots/win32/chromium-414/catalog-home.png) | [Home tablet](../tests/visual/snapshots/win32/chromium-768/catalog-home.png) | [Home desktop](../tests/visual/snapshots/win32/chromium-1440/catalog-home.png) |
+
+| 390 × 568 | 414 × 896 | 768 × 1024 | 1440 × 1000 |
+| --- | --- | --- | --- |
+| [Painel mobile](../tests/visual/snapshots/win32/chromium-390-short/catalog-navigation.png) | [Painel mobile](../tests/visual/snapshots/win32/chromium-414/catalog-navigation.png) | [Painel tablet](../tests/visual/snapshots/win32/chromium-768/catalog-navigation.png) | [Header durante rolagem](../tests/visual/snapshots/win32/chromium-1440/catalog-navigation.png) |
+
+[Home em 390 × 568](../tests/visual/snapshots/win32/chromium-390-short/catalog-home.png) e [painel em 390 × 844](../tests/visual/snapshots/win32/chromium-390/catalog-navigation.png) completam a matriz visual. A suíte funcional anexa capturas do painel com conta autenticada, filtros precisos e aviso de Socket.IO.
 
 As capturas da jornada anterior permanecem como referência histórica em `docs/evidence/purchase-*.png`; as capturas atuais de carrinho, checkout e recibo são anexadas à execução Playwright. As imagens do Figma não são baselines da aplicação e não estão versionadas.
 

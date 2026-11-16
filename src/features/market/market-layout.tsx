@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
 import { House, ShoppingCart, LogIn } from 'lucide-react'
 import { CatalogSearchForm } from './catalog-search'
 import { Link, Navigate, Outlet, useLocation, useRouter } from '@tanstack/react-router'
@@ -24,10 +24,22 @@ export function MarketLayout() {
   return <ScopedLayout key={query.data.id} session={query.data} />
 }
 function ScopedLayout({ session }: { session: Session }) {
+  const headerRef = useRef<HTMLElement>(null)
   const client = useQueryClient()
   const router = useRouter()
   const cart = useCart(session)
   const realtime = useMarketSocket(session)
+  useEffect(() => {
+    const header = headerRef.current
+    if (!header) return
+    const root = document.documentElement.style
+    const previous = root.getPropertyValue('--market-header-offset')
+    const measure = () => root.setProperty('--market-header-offset', `${Math.ceil(header.getBoundingClientRect().height) + 16}px`)
+    const observer = new ResizeObserver(measure)
+    observer.observe(header)
+    measure()
+    return () => { observer.disconnect(); if (previous) root.setProperty('--market-header-offset', previous); else root.removeProperty('--market-header-offset') }
+  }, [])
   useEffect(() => () => {
     void client.cancelQueries({ queryKey: marketKey(session.id) })
     client.removeQueries({ queryKey: marketKey(session.id) })
@@ -42,11 +54,11 @@ function ScopedLayout({ session }: { session: Session }) {
     client.setQueryData(sessionKey, result)
   } })
   return <div className="market">
-    <header className="market-header">
+    <header ref={headerRef} className="market-header">
       <Link to="/" className="site-brand" aria-label="Kurio, início">KURIO</Link>
       <nav aria-label="Marketplace" className="market-nav">
-        <Link to="/" activeOptions={{ exact: true, includeSearch: false }} className="nav-link"><House aria-hidden="true" /><span>Início</span></Link>
-        <a href="/#colecao" className="market-link">Mercado</a>
+        <Link to="/" activeOptions={{ exact: true, includeSearch: false, includeHash: true }} className="nav-link"><House aria-hidden="true" /><span>Início</span></Link>
+        <Link to="/" hash="colecao" activeOptions={{ exact: true, includeSearch: false, includeHash: true }} className="market-link">Mercado</Link>
         {session.user && <Link to="/orders" className="nav-link">Meus pedidos</Link>}
       </nav>
       <div className="header-actions">
@@ -56,7 +68,7 @@ function ScopedLayout({ session }: { session: Session }) {
       </div>
     </header>
     {session.user && <div className="account-tools"><span>{session.user.name}</span><Button variant="ghost" disabled={logout.isPending} onClick={() => logout.mutate()}>Sair</Button></div>}
-    {realtime.notice && <p role="status" className="mb-6 rounded-xl border border-border p-3 text-sm text-primary">{realtime.notice}</p>}
+    {realtime.notice && <p role="status" className="market-notice mb-6 rounded-xl border border-border p-3 text-sm text-primary">{realtime.notice}</p>}
     {logout.isError && <Failure error={logout.error} />}
     <main id="conteudo"><Outlet /></main>
     <section className="realtime-tools" aria-label="Simulação e tempo real"><Link to="/demo" className="demo-link">Cenários da demonstração</Link>    <div className="mb-6 flex flex-wrap items-center gap-3 text-xs text-muted-foreground"><span data-testid="market-socket">{realtime.connected ? 'Tempo real conectado' : 'Tempo real desconectado'}</span><button className="underline" onClick={realtime.toggle}>{realtime.connected ? 'Desconectar tempo real' : 'Reconectar tempo real'}</button><span data-testid="market-events">{realtime.received} eventos · {realtime.ignored} ignorados</span></div>

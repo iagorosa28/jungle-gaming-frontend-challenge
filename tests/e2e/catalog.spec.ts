@@ -27,6 +27,10 @@ async function filters(page: Page) {
   }
   await expect(option).toBeVisible()
 }
+async function closeFilters(page: Page) {
+  const dialog = page.getByRole('dialog', { name: 'Filtros do catálogo', exact: true })
+  if (await dialog.isVisible()) await dialog.getByRole('button', { name: 'Ver resultados', exact: true }).click()
+}
 const cards = (page: Page) => page.getByTestId('nft-grid').getByRole('article')
 
 test('contagens vêm da API e slider sincroniza campos precisos antes de aplicar filtros', async ({ page }) => {
@@ -47,8 +51,9 @@ test('contagens vêm da API e slider sincroniza campos precisos antes de aplicar
   await page.getByRole('slider', { name: 'Preço máximo no slider' }).focus()
   await page.keyboard.press('ArrowLeft')
   await expect(page.getByLabel('Máximo (ETH)')).toHaveValue('0.99')
-  await expect(cards(page)).toHaveCount(9)
+  await expect(page.locator('.nft-grid article')).toHaveCount(9)
   await page.getByRole('button', { name: 'Aplicar preço' }).click()
+  await closeFilters(page)
   await expect(cards(page)).toHaveCount(5)
   await expect(page).toHaveURL(/min=0.41/)
   await expect(page).toHaveURL(/max=0.99/)
@@ -64,6 +69,7 @@ test('busca, categoria, rede e preços combinam parâmetros REST reais e permite
   await page.getByLabel('Máximo (ETH)').fill('1')
   const response = page.waitForResponse(r => { const url = new URL(r.url()); return url.pathname === '/api/nfts' && url.searchParams.get('min') === '0.4' })
   await page.getByRole('button', { name: 'Aplicar preço' }).click()
+  await closeFilters(page)
   const rest = await response
   expect(rest.fromServiceWorker()).toBe(true)
   expect((await rest.json()).total).toBe(2)
@@ -104,6 +110,7 @@ test('URL direta, refresh e histórico restauram busca, filtros e página', asyn
   await filters(page)
   await expect(page.getByRole('radio', { name: 'Música', exact: true })).toBeChecked()
   await expect(page.getByLabel('Máximo (ETH)')).toHaveValue('1')
+  await closeFilters(page)
   await page.getByRole('button', { name: 'Limpar filtros' }).click()
   await expect(cards(page)).toHaveCount(9)
   await page.getByRole('button', { name: 'Página 2', exact: true }).click()
@@ -129,6 +136,7 @@ test('valida URL e faixa de preço e representa resultado vazio', async ({ page 
   await page.getByLabel('Máximo (ETH)').fill('1')
   await page.getByRole('button', { name: 'Aplicar preço' }).click()
   await expect(page.getByRole('alert')).toContainText('mínimo menor')
+  await closeFilters(page)
   await search(page, 'NFT inexistente')
   await expect(page.getByRole('heading', { name: 'Nenhum NFT encontrado' })).toBeVisible()
   await expect(page.getByRole('navigation', { name: 'Paginação do catálogo' })).toHaveCount(0)
@@ -143,10 +151,12 @@ test('preserva 18 casas decimais na URL e enriquece persistência anterior sem p
   await page.goto('/?min=0.190000000000000001&max=1.000000000000000001&sort=price-asc')
   await filters(page)
   await expect(page.getByLabel('Mínimo (ETH)')).toHaveValue('0.190000000000000001')
+  await closeFilters(page)
   await expect(cards(page).first()).toContainText('Sage Archive #800')
   await page.reload()
   await filters(page)
   await expect(page.getByLabel('Máximo (ETH)')).toHaveValue('1.000000000000000001')
+  await closeFilters(page)
   await page.evaluate(async () => {
     const session = await (await fetch('/api/session')).json()
     await fetch('/api/cart/items', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Mock-Session': session.id }, body: JSON.stringify({ nftId: 'emerald-042', edition: 'standard', quantity: 2 }) })
@@ -245,4 +255,27 @@ test('layout, assets locais, fonte e teclado nos três viewports', async ({ page
   const path = info.outputPath('catalog.png')
   await page.screenshot({ path, fullPage: true, animations: 'disabled' })
   await info.attach('catálogo responsivo', { path, contentType: 'image/png' })
+  if (page.viewportSize()!.width > 900) {
+    await page.getByRole('link', { name: 'Mercado', exact: true }).click()
+    await expect(page).toHaveURL(/#colecao$/)
+    const header = page.locator('.market-header')
+    await expect.poll(async () => (await header.boundingBox())!.y).toBe(0)
+    const heading = await page.getByRole('heading', { name: 'Todos os NFTs' }).boundingBox()
+    const chrome = await header.boundingBox()
+    expect(heading!.y).toBeGreaterThanOrEqual(chrome!.y + chrome!.height)
+    expect(heading!.y).toBeLessThan(chrome!.height + 100)
+    expect(await page.evaluate(() => scrollY)).toBeGreaterThan(200)
+    await page.evaluate(() => window.scrollTo(0, 1200))
+    await expect.poll(async () => (await header.boundingBox())!.y).toBe(0)
+    expect(await header.evaluate(el => getComputedStyle(el).backgroundColor)).toBe('rgb(20, 13, 10)')
+    const ordering = page.getByLabel('Ordenar NFTs')
+    await ordering.evaluate(el => { (el as HTMLElement).focus(); el.scrollIntoView({ block: 'start' }) })
+    await expect(ordering).toBeFocused()
+    const field = await ordering.boundingBox()
+    expect(field!.y).toBeGreaterThanOrEqual((await header.boundingBox())!.height)
+    await page.getByRole('searchbox', { name: 'Buscar NFTs' }).focus()
+    await expect(page.getByRole('searchbox', { name: 'Buscar NFTs' })).toBeFocused()
+    await page.getByRole('link', { name: 'Carrinho (0)', exact: true }).click()
+    await expect(page).toHaveURL(/\/cart$/)
+  }
 })
