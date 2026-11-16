@@ -1,10 +1,11 @@
 import axios from 'axios'
 import { z } from 'zod'
 import { http } from '@/shared/api/http'
-import { cartSchema, catalogNftSchema, orderSchema, quoteSchema, sessionSchema, walletSchema, type Attempt, type DemoInput } from '@/shared/contracts/market'
+import { cartSchema, catalogNftSchema, catalogResponseSchema, demoStateSchema, orderSchema, quoteSchema, sessionSchema, walletSchema, type Attempt, type DemoInput, type CatalogSearch } from '@/shared/contracts/market'
 
 export const marketKey = (scope: string) => ['market', scope] as const
 export const sessionKey = ['session'] as const
+export const demoKey = ['demo'] as const
 export function message(error: unknown) { return axios.isAxiosError(error) ? error.response?.data?.message ?? 'Falha de conexão. Tente novamente.' : error instanceof Error ? error.message : 'Não foi possível concluir.' }
 export function errorCode(error: unknown) { return axios.isAxiosError(error) ? error.response?.data?.code : undefined }
 export async function session(signal?: AbortSignal) { return sessionSchema.parse((await http.get('/session', { signal })).data) }
@@ -18,7 +19,7 @@ export function marketApi(scope: string) {
     }
   }
   return {
-    catalog: (signal?: AbortSignal) => run(http.get('/nfts', { signal }), z.array(catalogNftSchema)),
+    catalog: (params: CatalogSearch, signal?: AbortSignal) => run(http.get('/nfts', { params, signal }), catalogResponseSchema),
     nft: (id: string, signal?: AbortSignal) => run(http.get(`/nfts/${id}`, { signal }), catalogNftSchema),
     cart: (signal?: AbortSignal) => run(http.get('/cart', { ...config, signal }), cartSchema),
     editCart: (input: { nftId: string; edition: 'standard'; quantity: number; mode: 'add' | 'update' | 'remove' }) => run(
@@ -32,6 +33,7 @@ export function marketApi(scope: string) {
     orders: (signal?: AbortSignal) => run(http.get('/orders', { ...config, signal }), z.array(orderSchema)),
     order: (id: string, signal?: AbortSignal) => run(http.get(`/orders/${id}`, { ...config, signal }), orderSchema),
     receipt: (id: string, signal?: AbortSignal) => run(http.get(`/orders/${id}/receipt`, { ...config, signal }), orderSchema),
-    demo: (input: DemoInput) => run(http.post('/demo', input), z.object({ scenario: z.string() })),
+    demoState: (signal?: AbortSignal) => run(http.get('/demo', { signal }), demoStateSchema),
+    demo: (input: DemoInput) => run(http.post('/demo', input), demoStateSchema),
   }
 }

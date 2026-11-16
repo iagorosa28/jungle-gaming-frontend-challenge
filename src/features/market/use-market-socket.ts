@@ -3,7 +3,7 @@ import { useQueryClient } from '@tanstack/react-query'
 import { io, type Socket } from 'socket.io-client'
 import { z } from 'zod'
 import { nftUpdatedSchema, orderUpdatedSchema } from '@/shared/contracts/spike'
-import type { CatalogNft, Order, Quote, Session } from '@/shared/contracts/market'
+import type { CatalogNft, CatalogResponse, Order, Quote, Session } from '@/shared/contracts/market'
 import { marketKey } from './api'
 
 const privateEventSchema = orderUpdatedSchema.extend({ userId: z.string(), sessionId: z.string() })
@@ -30,7 +30,7 @@ export function useMarketSocket(session: Session) {
       const resource = `${type}:${event.resourceId}`
       const rest = type === 'nft.updated'
         ? [
-          ...client.getQueriesData<CatalogNft[]>({ queryKey: [...marketKey(session.id), 'catalog'] }).flatMap(([, data]) => data?.filter(n => n.id === event.resourceId).map(n => n.version) ?? []),
+          ...client.getQueriesData<CatalogResponse>({ queryKey: [...marketKey(session.id), 'catalog'] }).flatMap(([, data]) => data?.items.filter(n => n.id === event.resourceId).map(n => n.version) ?? []),
           ...client.getQueriesData<CatalogNft>({ queryKey: [...marketKey(session.id), 'nft', event.resourceId] }).map(([, data]) => data?.version ?? 0),
           ...client.getQueriesData<Quote>({ queryKey: [...marketKey(session.id), 'quote'] }).flatMap(([, data]) => data?.lines.filter(n => n.nftId === event.resourceId).map(n => n.version) ?? []),
         ]

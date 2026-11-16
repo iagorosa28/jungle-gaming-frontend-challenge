@@ -1,5 +1,13 @@
 # Componentes adaptados
 
+## Artes de referência e fonte
+
+As artes `public/art/nfts/{emerald-ape,sage-nomad,neon-vessel,golden-beat}.png` foram fornecidas como assets individuais do [Figma do desafio](https://www.figma.com/design/Ff0SksUi7UFtPWUO8kyNtw/Frontend-Challenge?node-id=0-1). São utilizadas exclusivamente na demonstração; sua inclusão não implica licença geral de redistribuição. Os 21 itens fictícios reutilizam essas quatro artes, conforme indicado nas descrições. Os SVGs geométricos anteriores permanecem como assets locais da implementação.
+
+Roboto Mono é distribuída por `@fontsource/roboto-mono@5.2.9`, sob SIL Open Font License 1.1. A [licença integral](public/fonts/roboto-mono-OFL.txt) acompanha o build. Os pesos 400, 500 e 700 são servidos localmente, com subconjuntos Latin e Latin Extended.
+
+## shadcn/ui
+
 Os componentes em `src/shared/components/ui` usam o padrão e adaptações de [shadcn/ui](https://github.com/shadcn-ui/ui), sob licença MIT. Os tokens e a composição foram ajustados para a página técnica.
 
 MIT License

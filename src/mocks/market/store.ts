@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { cartSchema, catalogNftSchema, orderSchema, quoteSchema, scenarioSchema, sessionSchema, userSchema } from '@/shared/contracts/market'
+import { cartSchema, catalogNftSchema, networkConditionsSchema, orderSchema, quoteSchema, scenarioSchema, sessionSchema, userSchema } from '@/shared/contracts/market'
 import { catalog } from './fixtures'
 
 const storedUserSchema = userSchema.extend({ salt: z.string(), digest: z.string().regex(/^[a-f0-9]{64}$/) })
@@ -8,6 +8,7 @@ const stateSchema = z.object({
   users: z.array(storedUserSchema), catalog: z.array(catalogNftSchema),
   carts: z.record(z.string(), cartSchema), quotes: z.record(z.string(), z.object({ owner: z.string(), quote: quoteSchema })),
   orders: z.array(orderSchema), triggered: z.boolean(),
+  networkConditions: networkConditionsSchema.default({ catalog: 'normal', loginDelayMs: 0 }),
 })
 export type State = z.infer<typeof stateSchema>
 const storageKey = 'jungle.mock.market.v1'
@@ -15,7 +16,7 @@ export const emptyCart = () => ({ items: [], revision: 0 })
 export const guestSession = () => ({ id: crypto.randomUUID(), user: null, expiresAt: null })
 function initial(): State {
   return {
-    format: 1, scenario: 'success', session: guestSession(), catalog: structuredClone(catalog),
+    format: 1, scenario: 'success', session: guestSession(), catalog: structuredClone(catalog), networkConditions: { catalog: 'normal', loginDelayMs: 0 },
     users: [
       { id: 'ana', name: 'Ana Demo', email: 'ana@example.test', salt: 'demo-ana', digest: 'd6b2432b78669d19b9096a73be351024fb883c346c252ba2f67fa05d7acd7237' },
       { id: 'bruno', name: 'Bruno Demo', email: 'bruno@example.test', salt: 'demo-bruno', digest: '8a6e4109dc1225acd01e19f19426b93ef26fd063bc99671395c119f5ca97333f' },
@@ -25,7 +26,17 @@ function initial(): State {
 function restore(): State {
   try {
     const raw = localStorage.getItem(storageKey)
-    if (raw) { const parsed = stateSchema.safeParse(JSON.parse(raw)); if (parsed.success) return parsed.data }
+    if (raw) {
+      const parsed = stateSchema.safeParse(JSON.parse(raw))
+      if (parsed.success) {
+        // Enrich earlier fixtures without losing purchases, session, prices or stock.
+        parsed.data.catalog = catalog.map(fixture => {
+          const previous = parsed.data.catalog.find(n => n.id === fixture.id)
+          return previous ? { ...fixture, priceEth: previous.priceEth, available: previous.available, version: previous.version } : structuredClone(fixture)
+        })
+        return parsed.data
+      }
+    }
   } catch { /* Invalid persisted demo state is replaced by deterministic fixtures. */ }
   return initial()
 }

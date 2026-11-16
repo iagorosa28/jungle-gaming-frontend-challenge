@@ -16,7 +16,8 @@
     "test:e2e": "playwright test",
     "test:e2e:dev": "playwright test --config playwright.dev.config.ts",
     "test:report": "playwright show-report",
-    "lighthouse": "node scripts/lighthouse.mjs"
+    "lighthouse": "node scripts/lighthouse.mjs",
+    "test:visual": "playwright test --config playwright.visual.config.ts"
   },
   "msw": {
     "workerDirectory": [
@@ -24,6 +25,7 @@
     ]
   },
   "dependencies": {
+    "@fontsource/roboto-mono": "5.2.9",
     "@mswjs/socket.io-binding": "^0.2.0",
     "@radix-ui/react-slot": "^1.5.0",
     "@tailwindcss/vite": "^4.3.5",

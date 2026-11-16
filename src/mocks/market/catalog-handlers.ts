@@ -1,12 +1,38 @@
-import { http } from 'msw'
-import { itemSchema } from '@/shared/contracts/market'
+import { delay, http, HttpResponse } from 'msw'
+import Decimal from 'decimal.js'
+import { catalogSearchSchema, categorySchema, networkSchema, itemSchema } from '@/shared/contracts/market'
 import { ApiError, endpoint, scope } from './http'
 import { save, state } from './store'
 import { quote } from './pricing'
 import { wallets } from './fixtures'
 
 export const catalogHandlers = [
-  http.get('/api/nfts', endpoint(() => state.catalog)),
+  http.get('/api/nfts', async ({ request }) => {
+    const mode = state.networkConditions.catalog
+    if (mode === 'network-error') return HttpResponse.error()
+    if (mode === 'http-error') return HttpResponse.json({ message: 'Catálogo temporariamente indisponível.', code: 'CATALOG_UNAVAILABLE' }, { status: 503 })
+    return endpoint(async request => {
+      const input = catalogSearchSchema.parse(Object.fromEntries(new URL(request.url).searchParams))
+      const text = input.q.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase()
+      const items = state.catalog.filter(nft =>
+        (!text || `${nft.name} ${nft.description}`.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().includes(text)) &&
+        (!input.category || nft.category === input.category) && (!input.network || nft.network === input.network) &&
+        (input.min === undefined || new Decimal(nft.priceEth).gte(input.min)) && (input.max === undefined || new Decimal(nft.priceEth).lte(input.max)))
+        .sort((a, b) => (input.sort === 'recent' ? b.listedAt - a.listedAt : new Decimal(a.priceEth).cmp(b.priceEth) * (input.sort === 'price-desc' ? -1 : 1)) || a.id.localeCompare(b.id))
+      const pages = Math.ceil(items.length / 9)
+      const page = Math.min(input.page, Math.max(1, pages))
+      // Snapshot before latency makes out-of-order responses reproducible.
+      const facets = {
+        total: state.catalog.length,
+        categories: Object.fromEntries(categorySchema.options.map(category => [category, state.catalog.filter(n => n.category === category).length])),
+        networks: Object.fromEntries(networkSchema.options.map(network => [network, state.catalog.filter(n => n.network === network).length])),
+        priceRange: { min: Decimal.min(...state.catalog.map(n => n.priceEth)).toFixed(18), max: Decimal.max(...state.catalog.map(n => n.priceEth)).toFixed(18) },
+      }
+      const response = structuredClone({ items: items.slice((page - 1) * 9, page * 9), total: items.length, page, pageSize: 9, pages, facets })
+      await delay(mode === 'slow' ? 1200 : mode === 'out-of-order' ? (input.q.length <= 1 ? 1500 : 100) : 80)
+      return response
+    })({ request })
+  }),
   http.get('/api/nfts/:id', endpoint(request => {
     const id = new URL(request.url).pathname.split('/').at(-1)
     const nft = state.catalog.find(n => n.id === id)

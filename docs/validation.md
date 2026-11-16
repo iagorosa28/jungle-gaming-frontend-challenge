@@ -1,65 +1,81 @@
-# Validação da jornada de compra
+# Validação do catálogo e da jornada de compra
 
-Registro de 15/11/2026. Ambiente local: Windows, Node 24.22.2, npm 11.19.1, Vite 8.3.8 e Playwright 1.65.1. A matriz principal usa Chromium e build otimizado servido por `vite preview`.
+Validação de 15/11/2026 em Windows, Node 24.22.2, npm 11.19.1, Vite 8.3.8 e Playwright 1.65.1. Chromium nos viewports 390, 768 e 1440 px, build otimizado e dois workers (`CI=true`), sem retries.
 
-## Comandos e resultados
+## Resultados
 
 | Comando | Resultado |
 | --- | --- |
-| `npm ci --prefer-offline --no-audit` | Aprovado; 375 pacotes instalados pelo lockfile, sem alteração de dependências |
 | `npm run lint` | Aprovado, zero warnings |
 | `npm run typecheck` | Aprovado |
-| `npm run build` | Aprovado; worker e três ilustrações SVG incluídos em `dist` |
-| `npm test` | **66 aprovados, zero falhas, 2,9 min**; 22 cenários por viewport em 390, 768 e 1440 px |
-| `npm run test:e2e:dev -- --project=chromium-390` | **22 aprovados, zero falhas, 1,7 min**; Vite e React StrictMode |
+| `npm run build` | Aprovado; MSW, quatro artes PNG e Roboto Mono incluídos em dist |
+| `npm test` | 120 aprovados, zero falhas, 4,3 min; 40 cenários por projeto |
+| `npm run test:visual` | 10 aprovados; home e navegação, incluindo 390 × 568 e 414 × 896; zero pixels divergentes |
+| Vite/React StrictMode, comando abaixo | 3 aprovados; painel, filtros com conta/Socket.IO e layout em 390 px |
 | `git diff --check` | Aprovado |
 
-Dos 66 testes, **24 são os testes existentes do spike** e **42 cobrem a compra**. A única atualização de expectativa do spike é a rota inicial, que agora mostra o catálogo. Nenhuma baseline visual foi substituída. O conjunto principal executa do build otimizado, com servidor próprio e porta 4173 livre.
+```sh
+npm run test:e2e:dev -- --project chromium-390 --workers 2 --grep "painel sobreposto|filtros mantêm URL|layout, assets"
+```
 
-## Evidências verificáveis
+## Regressão da autenticação
 
-`tests/e2e/purchase.spec.ts` exercita a interface e os handlers MSW reais. Os controles de cenário também passam por REST. Não há `page.route` fornecendo respostas alternativas, cliente Axios substituído ou eventos recebidos por setters de React.
+O [trace do CI anterior](https://github.com/iagorosa28/jungle-gaming-frontend-challenge/actions/runs/43759723893) mostra navegação completa para `/cart` imediatamente após o clique de login, antes do término do POST. O documento responsável pelo handler MSW foi encerrado e a sessão seguinte continuou como visitante. O carrinho de 1 unidade observado era o visitante, não o carrinho mesclado de 3 unidades.
 
-| Cenário | Verificação |
+O helper aguarda resposta HTTP 200 interceptada pelo Service Worker, identidade autenticada, URL de retorno e sessão publicada na interface antes de continuar. O cenário mantém as assertions da mesclagem e do rollback, consulta a quantidade pela API e verifica sua persistência após refresh. A latência controlada reproduz a falha com o helper anterior e permanece ativa no teste de regressão. A regra de mesclagem, isolamento e idempotência não foi alterada.
+
+## Estado efetivo dos Cenários
+
+O formulário é inicializado por `GET /api/demo`, validado por Zod e armazenado somente no cache de estado remoto. Após comandos, o estado é reconsultado. Rede e latência não usam defaults locais como representação de uma configuração já persistida. Os testes validam o formulário e o contrato REST após aplicação, navegação, refresh e reset.
+
+O catálogo explica falhas forçadas sem alterar o significado de Tentar novamente: cada clique reexecuta a consulta e falha enquanto a condição persistir. Restaurar rede normal envia o comando REST, mantém os dados da compra e os filtros da URL e reconcilia as queries.
+
+## Cobertura
+
+Os 40 cenários por projeto incluem 12 do catálogo, 4 de Cenários, 2 de navegação, 14 da compra e 8 do spike. Os testes de navegação usam explicitamente 390 × 568, 414 × 896 e 768 × 1024; o restante mantém 390, 768 e 1440 px. A suíte usa Axios/REST com MSW e transporte Socket.IO efetivo, sem `page.route` ou respostas alternativas no cliente.
+
+| Área | Verificações |
 | --- | --- |
-| Compra completa | POST interceptado pelo Service Worker; resposta inicial pendente; recibo somente após confirmação REST |
-| Carrinho visitante | Refresh conserva quantidades; login soma carrinho da conta e visitante; remoção confirmada pela API |
-| Edição otimista | Quantidade indisponível retorna 409 e restaura a quantidade anterior |
-| Cadastro/sessão | Conflito de e-mail, cadastro novo, refresh autenticado, expiração e retomada do checkout |
-| Isolamento | Logout/troca de usuário; carrinho/pedidos independentes; consulta de pedido/recibo alheio retorna 404; eventos privados não chegam à outra conta |
-| Recusa | Carteira de recusa preserva itens; endpoint de recibo retorna 409; refresh conserva recusa |
-| Cotação antiga | Alteração silenciosa de preço retorna 409, sem pedido; exige revisar e confirmar novamente |
-| Disponibilidade em tempo real | `nft.updated` via Socket.IO invalida cotação e impede confirmação antiga |
-| Idempotência | Clique repetido e POSTs com mesma chave recuperam um pedido; conteúdo diferente retorna 409 |
-| Resposta perdida | HTTP 504 após criação; recuperação da mesma chave e refresh mantêm somente um pedido |
-| Refresh antes da resposta | Tentativa autorizada persistida recupera pedido sem nova criação |
-| Pendente/reconexão | Refresh preserva pendência; reconexão recupera por REST; eventos duplicados/antigos são ignorados |
-| Evento do pedido | `order.updated` efetivo no `socket.io-client`; confirmação remove somente quantidades compradas |
-| Recibo imutável | Comparação integral do JSON antes/depois de alterar preço e recarregar |
-| Contratos | Quantidades fracionadas/fora do limite, edição inexistente, rede incompatível e credenciais inválidas rejeitadas |
-| Prazo/reidratação | Data controlada expira cotação; armazenamento malformado restaura fixtures |
+| Catálogo | Contagens da API, slider/campos decimais, busca, categoria, rede e preços combinados enviados à API; ordenação e três páginas |
+| Cenários | GET do estado efetivo, seleção e latência persistidas após navegação/refresh, retry que mantém falha forçada, reset e recuperação sem perder URL |
+| URL | Acesso direto, refresh, voltar/avançar, validação e precisão de 18 casas decimais |
+| Persistência | Catálogo anterior enriquecido sem perder carrinho, preços ou sessão; estado inválido restaura fixtures |
+| Rede | Vazio, HTTP 503, falha de transporte, retry explícito, skeleton/shimmer, movimento reduzido e resposta fora de ordem |
+| Tempo real | Preço/estoque e pedidos via Socket.IO, REST após reconexão, duplicatas/versões antigas |
+| Compra | Visitante/conta, quantidades/remoção, sessão/expiração, isolamento, revisão, confirmação e recibo imutável |
+| Recuperação | Recusa, conflito de preço/estoque, idempotência, timeout após criação, pending e refresh |
+| Navegação | Drawer sem deslocar o catálogo; foco inicial/cíclico/restaurado; Escape, botão e backdrop; rolagem interna, fundo bloqueado, resize e filtros precisos com conta e Socket.IO |
+| Interface | Header sticky, âncoras e campos focados livres de obstrução; assets locais, hero sobreposto, teclado, detalhe e ausência de overflow |
 
-Relatório HTML local: `playwright-report/index.html`, aberto por `npm run test:report`. O teste positivo anexa JSON do recibo e capturas de catálogo, carrinho, checkout e recibo por viewport. Traces/screenshots de falhas são gerados em `test-results/`. CI publica relatórios como artifacts por 14 dias; relatórios gerados não são versionados.
+Relatório principal: `playwright-report/index.html` (`npm run test:report`). Capturas/recibo JSON são anexados aos testes; falhas produzem trace e screenshot em `test-results/`. CI disponibiliza os artifacts por 14 dias. Relatório visual independente: `playwright-report/visual/index.html`. Relatórios gerados não são versionados.
 
-O relatório adicional de desenvolvimento fica em `playwright-report/dev/index.html`, com resultados em `test-results/dev/`, preservando o relatório principal.
+## Navegação responsiva
 
-## Capturas da interface implementada
+O painel modal permite combinar filtros sem deslocar a listagem. Seu header e footer ficam fora da área de rolagem interna; a camada modal cobre a navegação inferior. Fechar restaura foco e posição da página, preservando os filtros aplicados na URL. Os testes verificam o ciclo de Tab/Shift+Tab e a limpeza do bloqueio de rolagem ao mudar para desktop.
 
-As doze capturas abaixo foram inspecionadas visualmente. São evidências, não baselines nem PNGs usados como interface. Os testes também verificam ausência de overflow horizontal em carrinho, checkout e recibo.
+O header desktop permanece acessível ao rolar. Sua altura medida determina o espaço de rolagem; os testes navegam por âncora, focam controles e usam busca/carrinho com o header fixado. Conta autenticada e eventos Socket.IO são exercitados com o painel aberto, sem retirar seu foco. A composição de duas artes no hero permanece inalterada.
 
-| Tela | 390 px | 768 px | 1440 px |
+## Evidências visuais
+
+As quatro baselines anteriores da home permanecem inalteradas. A cobertura inclui também a home em 390 × 568, o painel aberto nos quatro tamanhos compactos e o header desktop após navegar até o catálogo. As seis novas capturas foram inspecionadas antes da promoção manual; o teste mantém zero pixels divergentes e atualização automática desativada. A composição sobreposta do hero foi preservada.
+
+| 390 px | 414 px | 768 px | 1440 px |
 | --- | --- | --- | --- |
-| Catálogo | [Captura](evidence/purchase-catalog-390.png) | [Captura](evidence/purchase-catalog-768.png) | [Captura](evidence/purchase-catalog-1440.png) |
-| Carrinho | [Captura](evidence/purchase-cart-390.png) | [Captura](evidence/purchase-cart-768.png) | [Captura](evidence/purchase-cart-1440.png) |
-| Checkout | [Captura](evidence/purchase-checkout-390.png) | [Captura](evidence/purchase-checkout-768.png) | [Captura](evidence/purchase-checkout-1440.png) |
-| Recibo | [Captura](evidence/purchase-receipt-390.png) | [Captura](evidence/purchase-receipt-768.png) | [Captura](evidence/purchase-receipt-1440.png) |
+| [Home mobile](../tests/visual/snapshots/win32/chromium-390/catalog-home.png) | [Home mobile](../tests/visual/snapshots/win32/chromium-414/catalog-home.png) | [Home tablet](../tests/visual/snapshots/win32/chromium-768/catalog-home.png) | [Home desktop](../tests/visual/snapshots/win32/chromium-1440/catalog-home.png) |
 
-Evidências anteriores do spike: [390 px](evidence/spike-390.png), [768 px](evidence/spike-768.png) e [1440 px](evidence/spike-1440.png). O [CI da fundação](https://github.com/iagorosa28/jungle-gaming-frontend-challenge/actions/runs/43726603878) permanece como registro histórico; não substitui as verificações desta alteração.
+| 390 × 568 | 414 × 896 | 768 × 1024 | 1440 × 1000 |
+| --- | --- | --- | --- |
+| [Painel mobile](../tests/visual/snapshots/win32/chromium-390-short/catalog-navigation.png) | [Painel mobile](../tests/visual/snapshots/win32/chromium-414/catalog-navigation.png) | [Painel tablet](../tests/visual/snapshots/win32/chromium-768/catalog-navigation.png) | [Header durante rolagem](../tests/visual/snapshots/win32/chromium-1440/catalog-navigation.png) |
 
-## Limites
+[Home em 390 × 568](../tests/visual/snapshots/win32/chromium-390-short/catalog-home.png) e [painel em 390 × 844](../tests/visual/snapshots/win32/chromium-390/catalog-navigation.png) completam a matriz visual. A suíte funcional anexa capturas do painel com conta autenticada, filtros precisos e aviso de Socket.IO.
 
-- Auditoria final Lighthouse e regressão visual com baselines não foram executadas nesta etapa.
-- A fundação já está publicada em Production; esta validação não executa deployment nem comprova os fluxos novos em HTTPS público.
-- A instalação usou `--no-audit`; auditoria de dependências não foi refeita nesta etapa. O registro anterior apontava sete alertas moderados no tooling typescript-eslint/minimatch e nenhum nas dependências de produção; a árvore de dependências foi preservada.
-- Persistência e autenticação são fictícias e alteráveis no navegador. Não há segurança de servidor, concorrência entre abas/dispositivos ou integração real de pagamento.
-- PNGs locais orientaram composição/identidade; fonte/tokens são aproximações e os SVGs substituem os assets artísticos. Fidelidade final permanece pendente.
+As capturas da jornada anterior permanecem como referência histórica em `docs/evidence/purchase-*.png`; as capturas atuais de carrinho, checkout e recibo são anexadas à execução Playwright. As imagens do Figma não são baselines da aplicação e não estão versionadas.
+
+## Limitações
+
+- Baselines visuais disponíveis somente para Chromium/Windows. Linux/macOS e execução visual no CI permanecem pendentes; os testes funcionais continuam em Linux/CI.
+- A auditoria executada por `npm ci` reportou sete alertas moderados. Correções de dependências que exigem mudanças fora desta entrega permanecem pendentes.
+- Auditoria final Lighthouse não foi executada nesta entrega. O comando e a configuração existentes permanecem disponíveis.
+- A jornada de compra está em Production; a evolução do catálogo depende de integração. Esta validação não publica Production nem comprova o catálogo em HTTPS público.
+- Autenticação/persistência são simulações alteráveis no navegador; não há servidor seguro, concorrência entre documentos ou pagamento real.
+- A home adapta a referência para controles funcionais e acessíveis. Galeria, favoritos, perfil, carteiras, cupons e áreas editoriais continuam fora desta entrega.
