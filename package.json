@@ -15,6 +15,7 @@
     "test": "playwright test",
     "test:e2e": "playwright test",
     "test:e2e:dev": "playwright test --config playwright.dev.config.ts",
+    "test:tab-resume": "node scripts/check-tab-resume.mjs",
     "test:report": "playwright show-report",
     "lighthouse": "node scripts/lighthouse.mjs",
     "test:visual": "playwright test --config playwright.visual.config.ts"

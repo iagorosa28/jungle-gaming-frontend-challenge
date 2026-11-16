@@ -9,6 +9,22 @@ export const demoKey = ['demo'] as const
 export function message(error: unknown) { return axios.isAxiosError(error) ? error.response?.data?.message ?? 'Falha de conexão. Tente novamente.' : error instanceof Error ? error.message : 'Não foi possível concluir.' }
 export function errorCode(error: unknown) { return axios.isAxiosError(error) ? error.response?.data?.code : undefined }
 export async function session(signal?: AbortSignal) { return sessionSchema.parse((await http.get('/session', { signal })).data) }
+export async function recoverConnection(error: unknown) {
+  if ((import.meta.env.VITE_ENABLE_MOCKS ?? 'true') !== 'true') return
+  if (!axios.isAxiosError(error) && !(error instanceof z.ZodError)) return
+  if (axios.isAxiosError(error) && error.response && error.response.status !== 404 && !String(error.response.headers['content-type']).includes('text/html')) return
+  // A catalog failure may be intentional. Probe the always-available session
+  // endpoint before reactivating MSW; real network errors remain retryable.
+  const probe = await http.get('/session').catch((probeError: unknown) => {
+    if (axios.isAxiosError(probeError)) return probeError.response
+    throw probeError
+  })
+  const contentType = String(probe?.headers['content-type'] ?? '')
+  if (probe && (contentType.includes('text/html') || (probe.status === 404 && !contentType.includes('application/json')))) {
+    const { recoverMockWorker } = await import('@/mocks/browser')
+    await recoverMockWorker()
+  }
+}
 export function marketApi(scope: string) {
   const config = { headers: { 'X-Mock-Session': scope } }
   async function run<T>(operation: Promise<{ data: unknown }>, schema: z.ZodType<T>) {

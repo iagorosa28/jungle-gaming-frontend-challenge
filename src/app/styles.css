@@ -90,7 +90,7 @@ button:not(:disabled), a { cursor: pointer; }
 .hero-explore { display: inline-flex; align-items: center; gap: 12px; border-radius: 6px; padding: 10px 26px; margin-top: 32px; background: var(--primary); color: var(--primary-foreground); font-weight: 700; text-transform: uppercase; }
 .hero-art { display: block; position: relative; min-width: 0; }
 .hero-art > img:first-child { display: block; width: 100%; height: auto; border-radius: 24px; }
-.hero-companion, .hero-mobile-title, .hero-mobile-description { display: none; }
+.hero-mobile-title, .hero-mobile-description { display: none; }
 .catalog-section { display: grid; grid-template-columns: 310px minmax(0,1fr); gap: 48px; scroll-margin-top: 24px; }
 .catalog-filters { background: var(--card); padding: 22px 20px; align-self: start; }
 .catalog-filters h2, .catalog-filters legend:not(.sr-only) { font-size: 18px; font-weight: 700; margin-bottom: 18px; }
@@ -202,7 +202,6 @@ button:not(:disabled), a { cursor: pointer; }
   .hero-explore { margin-top: 4px; padding: 0; background: transparent; color: var(--accent); font-size: 12px; gap: 6px; }
   .hero-art { margin-top: 0; }
   .hero-art > img:first-child { border-radius: 16px; }
-  .hero-companion { display: block; position: absolute; width: 44%; height: auto; bottom: -8%; left: 8%; border-radius: 12px; }
   .catalog-toolbar { gap: 16px; }
   .catalog-toolbar label { width: 100%; justify-content: space-between; font-size: 11px; }
   .catalog-toolbar select { font-size: 11px; }

@@ -1,5 +1,7 @@
 # Validação do catálogo e da jornada de compra
 
+> Registro de 15/11/2026. Para a composição atual do hero, recuperação do Service Worker e resultados posteriores, consulte a [validação final de estabilidade](final-stability.md).
+
 Validação de 15/11/2026 em Windows, Node 24.22.2, npm 11.19.1, Vite 8.3.8 e Playwright 1.65.1. Chromium nos viewports 390, 768 e 1440 px, build otimizado e dois workers (`CI=true`), sem retries.
 
 ## Resultados
