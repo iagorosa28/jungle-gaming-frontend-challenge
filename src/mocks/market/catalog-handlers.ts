@@ -1,6 +1,6 @@
 import { delay, http, HttpResponse } from 'msw'
 import Decimal from 'decimal.js'
-import { catalogSearchSchema, itemSchema } from '@/shared/contracts/market'
+import { catalogSearchSchema, categorySchema, networkSchema, itemSchema } from '@/shared/contracts/market'
 import { ApiError, endpoint, scope } from './http'
 import { save, state } from './store'
 import { quote } from './pricing'
@@ -22,7 +22,13 @@ export const catalogHandlers = [
       const pages = Math.ceil(items.length / 9)
       const page = Math.min(input.page, Math.max(1, pages))
       // Snapshot before latency makes out-of-order responses reproducible.
-      const response = structuredClone({ items: items.slice((page - 1) * 9, page * 9), total: items.length, page, pageSize: 9, pages })
+      const facets = {
+        total: state.catalog.length,
+        categories: Object.fromEntries(categorySchema.options.map(category => [category, state.catalog.filter(n => n.category === category).length])),
+        networks: Object.fromEntries(networkSchema.options.map(network => [network, state.catalog.filter(n => n.network === network).length])),
+        priceRange: { min: Decimal.min(...state.catalog.map(n => n.priceEth)).toFixed(18), max: Decimal.max(...state.catalog.map(n => n.priceEth)).toFixed(18) },
+      }
+      const response = structuredClone({ items: items.slice((page - 1) * 9, page * 9), total: items.length, page, pageSize: 9, pages, facets })
       await delay(mode === 'slow' ? 1200 : mode === 'out-of-order' ? (input.q.length <= 1 ? 1500 : 100) : 80)
       return response
     })({ request })

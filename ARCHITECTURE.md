@@ -6,7 +6,7 @@ O [enunciado oficial](https://github.com/junglegaming/frontend-challenge/blob/ma
 
 A identidade da home segue os PNGs de referência e os tokens confirmados: Roboto Mono 400/500/700, fundo `#140D0A`, foreground `#F5F1EB`, primária `#D28A4C`, accent `#E89B55`, secundária `#CFB28C`, card `#241612`, superfície escura `#38220F`, borda `#3F2319`. Tokens estão centralizados em CSS e expostos ao Tailwind/shadcn. Fontsource fornece arquivos locais e sua licença acompanha o build. `public/art/nfts` contém somente quatro artes individuais; screenshots completos do Figma não são assets da interface.
 
-Desktop usa conteúdo de até 1.200 px e sidebar de 310 px. Tablet e mobile usam filtros expansíveis sem modal nem captura de foco; botão informa `aria-expanded`/`aria-controls`. Categorias/redes usam radios nativos. Preços têm campos explícitos para permitir precisão e teclado, em lugar do slider ilustrativo. Os cards mantêm acesso ao detalhe e adição ao carrinho. Hero mobile adapta a composição com arte secundária; carrossel, favoritos e áreas editoriais não são simulados. Outras telas recebem apenas os tokens e o header compartilhados; não foram redesenhadas.
+Desktop usa conteúdo de até 1.200 px e sidebar de 310 px. Tablet e mobile usam filtros expansíveis sem modal nem captura de foco; botão informa `aria-expanded`/`aria-controls`. Categorias/redes usam radios nativos. Preços combinam dois ranges nativos acessíveis por teclado, com passos de 0,01 ETH, e campos decimais que preservam até 18 casas. O limite visual superior usa o maior preço da API arredondado para cima e acomoda limites numéricos maiores; mover um thumb não reescreve o valor preciso do outro campo. Somente Aplicar preço envia os filtros ao Router/API. O header desktop usa marca à esquerda, navegação central, busca e ações à direita. Em tablet/mobile, a busca antecede o hero; no mobile a navegação inferior fixa oferece somente rotas existentes, com espaço de rolagem para acessar controles. Cenários fica junto aos controles de demonstração. Cards usam botão de adição com contorno e área de toque de 44 px, mantendo detalhe e compra. Hero mobile adapta a composição com arte secundária; carrossel, favoritos e áreas editoriais não são simulados. Outras telas recebem apenas os tokens e o header compartilhados; não foram redesenhadas.
 
 ## Responsabilidades
 
@@ -36,7 +36,7 @@ Recursos de escopo enviam `X-Mock-Session`, identificador fictício rotacionado 
 | `POST /session/register` | `{ name, email, password }` → sessão; conflito 409 |
 | `POST /session/login` | `{ email, password }` → sessão; credenciais inválidas 401 |
 | `POST /session/logout` | Encerra escopo → visitante |
-| `GET /nfts` | Parâmetros abaixo → `{ items, total, page, pageSize: 9, pages }` |
+| `GET /nfts` | Parâmetros abaixo → `{ items, total, page, pageSize: 9, pages, facets }` |
 | `GET /nfts/:id` | NFT: id, nome, edição, preço, disponibilidade, versão, arte, descrição, categoria, rede, listedAt |
 | `GET /cart` | `{ items: [{ nftId, edition, quantity }], revision }` |
 | `POST /cart/items` | Item → soma quantidade e retorna carrinho |
@@ -49,7 +49,8 @@ Recursos de escopo enviam `X-Mock-Session`, identificador fictício rotacionado 
 | `GET /orders/by-key/:key` | Recuperação exclusivamente da conta |
 | `GET /orders/:id` | Estado, versão e snapshot |
 | `GET /orders/:id/receipt` | Somente confirmado; pendente/recusado retorna 409 |
-| `POST /demo` | Reset/alterações; controle público exclusivo dos mocks |
+| `GET /demo` | `{ scenario, networkConditions: { catalog, loginDelayMs } }`; estado efetivo dos mocks |
+| `POST /demo` | Reset/alterações → mesmo contrato de leitura; controle público exclusivo dos mocks |
 | `GET /spike?scenario=success ou slow ou error` | Snapshot original com origem MSW |
 | `POST /spike/events` | `{ delivery: next ou duplicate ou stale }` → metadados |
 
@@ -93,7 +94,11 @@ Cenários estão no README. `timeout` representa HTTP 504 após commit e atraso 
 
 API valida estritamente e retorna 400 para parâmetros inválidos. A URL aplica padrões seguros por campo, descartando o par de preços quando a faixa é invertida. Uma lista vazia retorna total/pages 0 e page 1. Ordenação recente usa `listedAt` decrescente; preços usam decimal.js; empates usam ID. A rede descreve o NFT e o filtro; não altera os contratos de carteira e checkout existentes.
 
+`facets` contém `{ total, categories, networks, priceRange: { min, max } }`. Categorias/redes são mapas completos de contagens inteiras sobre todo o catálogo, independentes dos filtros e da página; representam NFTs, incluindo esgotados, e não unidades de estoque. Os extremos usam strings decimais de 18 casas. O cliente apenas apresenta esses metadados, sem filtrar fixtures ou derivar contagens de uma página parcial.
+
 Os 21 itens têm três páginas, sete categorias e duas redes. IDs, preço e estoque dos três itens anteriores são preservados. Reidratação válida enriquece o catálogo anterior com metadados/novas fixtures e mantém preços, estoque, versões, carrinhos, sessão, pedidos e snapshots. Estado inválido restaura as fixtures. Reset também limpa condições de rede.
+
+`GET /demo` lê o estado efetivo, sem depender das condições impostas ao catálogo. A query pública `['demo']` é invalidada após comandos; o formulário é inicializado pelos dados REST. React mantém somente edições ainda não enviadas. O erro do catálogo consulta esse mesmo contrato, explica falhas forçadas e pode enviar rede normal/latência zero, invalidando o estado e os recursos do marketplace sem resetar dados de compra. Tentar novamente continua sendo somente um refetch.
 
 `POST /demo` aceita `{ action: 'network', catalog, loginDelayMs }`. Modos do catálogo: normal (80 ms), slow (1.200 ms), http-error (503), network-error (`HttpResponse.error`) e out-of-order (1.500 ms com q de até um caractere, 100 ms nas demais consultas). Snapshot é capturado antes da latência, permitindo resposta antiga fora de ordem. Login aceita atraso de 0–3.000 ms antes de validar a sessão e mesclar os carrinhos. Controles ficam nos mocks, persistem com validação Zod e são públicos apenas para demonstração.
 
@@ -126,6 +131,6 @@ Vite copia assets/worker a `dist`; rewrites Vercel preservam assets e rotas SPA.
 
 Playwright usa build otimizado/servidor próprio e 390/768/1440 px, sem interceptações artificiais substituindo rede. Controles REST resolvem pendências/repetem eventos deterministicamente. Resultados em [docs/validation.md](docs/validation.md).
 
-Regressão visual usa configuração separada (`playwright.visual.config.ts`), comparação sem pixels divergentes, movimento reduzido e espera explícita por fontes/imagens. Snapshots iniciais Chromium/Windows em três viewports são versionados; geração/atualização automática é desativada. Baselines de outros sistemas e execução visual no CI ainda não estão disponíveis.
+Regressão visual usa configuração separada (`playwright.visual.config.ts`), comparação sem pixels divergentes, movimento reduzido e espera explícita por fontes/imagens. Snapshots Chromium/Windows em 390, 414, 768 e 1440 px são versionados; geração/atualização automática é desativada. Baselines de outros sistemas e execução visual no CI ainda não estão disponíveis.
 
 Auditoria final Lighthouse, galeria completa, favoritos, perfil, gestão de carteiras, cupons e concorrência entre documentos permanecem pendentes. A fidelidade de áreas editoriais e outras telas está fora desta evolução.

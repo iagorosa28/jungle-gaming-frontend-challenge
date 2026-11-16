@@ -24,7 +24,7 @@ Abra [http://127.0.0.1:5173](http://127.0.0.1:5173). `VITE_ENABLE_MOCKS=true` é
 | `npm run preview` | Servir build na porta 4173 |
 | `npm test` / `npm run test:e2e` | Build, servidor próprio e Playwright nos três viewports |
 | `npm run test:e2e:dev` | Testes com Vite/StrictMode |
-| `npm run test:visual` | Regressão visual da home; baselines Chromium/Windows nos três viewports |
+| `npm run test:visual` | Regressão visual da home; baselines Chromium/Windows em 390, 414, 768 e 1440 px |
 | `npm run test:report` | Relatório HTML da última execução |
 | `npm run lighthouse -- --profile=mobile --runs=3` | Auditoria do servidor já iniciado |
 
@@ -59,11 +59,11 @@ A busca é aplicada ao enviar o formulário; ignora caixa e acentos e procura no
 
 A URL guarda `q`, `category`, `network`, `min`, `max`, `sort` e `page`, com validação independente dos valores. Links diretos, refresh e histórico restauram controles e resultados. Valores inválidos da URL usam padrões seguros; a API rejeita parâmetros inválidos com HTTP 400. A página fora do intervalo é ajustada ao último resultado disponível.
 
-`GET /api/nfts` recebe esses parâmetros via Axios e retorna `{ items, total, page, pageSize: 9, pages }`. Filtros, comparação decimal, ordenação e paginação são executados nos handlers MSW. Categorias: `digital`, `photography`, `music`, `3d`, `collectibles`, `generative` e `games`. Redes: `ethereum` e `polygon`. Ordenações: `recent`, `price-asc` e `price-desc`. Detalhes dos contratos em [ARCHITECTURE.md](ARCHITECTURE.md).
+`GET /api/nfts` recebe esses parâmetros via Axios e retorna `{ items, total, page, pageSize: 9, pages, facets }`. Filtros, comparação decimal, ordenação e paginação são executados nos handlers MSW. Categorias: `digital`, `photography`, `music`, `3d`, `collectibles`, `generative` e `games`. Redes: `ethereum` e `polygon`. Ordenações: `recent`, `price-asc` e `price-desc`. As contagens de categorias/redes e os extremos de preço vêm de `facets`, calculados sobre os 21 NFTs antes dos filtros; as contagens representam itens, não unidades de estoque. O slider ajusta a faixa em passos de 0,01 ETH; os campos numéricos preservam até 18 casas. Ambos aplicam filtros somente em **Aplicar preço**. Detalhes dos contratos em [ARCHITECTURE.md](ARCHITECTURE.md).
 
 Cada combinação tem sua própria chave de cache. Consultas recebem AbortSignal; troca de parâmetros mostra skeleton em vez de resultados da consulta anterior. Refetch da mesma consulta mantém os itens e mostra **Atualizando resultados**. Falhas não repetem automaticamente e oferecem **Tentar novamente**. Atualizações Socket.IO invalidam listas e reconciliam preço, composição, ordenação e totais por REST, inclusive após reconexão.
 
-Tokens centrais em `src/app/styles.css`: fundo `#140D0A`, texto `#F5F1EB`, primária `#D28A4C`, destaque `#E89B55`, texto secundário `#CFB28C`, card `#241612`, superfície escura `#38220F` e borda `#3F2319`. Roboto Mono 400/500/700 acompanha o build por Fontsource. Desktop usa sidebar e três colunas; tablet usa filtros expansíveis e três colunas; mobile usa filtros expansíveis e duas colunas. Ações e labels de compra são preservadas. Skeletons usam shimmer e respeitam movimento reduzido.
+Tokens centrais em `src/app/styles.css`: fundo `#140D0A`, texto `#F5F1EB`, primária `#D28A4C`, destaque `#E89B55`, texto secundário `#CFB28C`, card `#241612`, superfície escura `#38220F` e borda `#3F2319`. Roboto Mono 400/500/700 acompanha o build por Fontsource. Desktop usa sidebar e três colunas; tablet usa filtros expansíveis e três colunas; mobile usa filtros expansíveis e duas colunas. A busca integra a topbar no desktop e aparece antes do hero em tablet/mobile. Marca à esquerda, navegação central e ações à direita compõem o header desktop; no mobile, a navegação inferior contém somente destinos existentes. **Cenários da demonstração** fica abaixo do catálogo, junto aos controles de tempo real. Os botões dos cards usam apresentação discreta com contorno, preservando foco, teclado e área de toque. Skeletons usam shimmer e respeitam movimento reduzido.
 
 ## Cenários e recuperação
 
@@ -91,7 +91,7 @@ await fetch('/api/demo', {
 
 `broadcast: false` demonstra rejeição de cotação antiga sem evento no cliente. Remova a opção para emitir pelo Socket.IO. Outras ações: `stock`, `expire`, `settle`, `duplicate` e `stale`. Esses controles são públicos e exclusivos dos mocks.
 
-Em `/demo`, **Condições de rede** configura o catálogo: `normal` (80 ms), `slow` (1,2 s), `http-error` (503), `network-error` (falha de transporte) e `out-of-order` (1,5 s para busca com até um caractere; 100 ms para as demais). O controle também aceita latência de login entre 0 e 3.000 ms. Configuração persiste; **Restaurar cenário** retorna à rede normal. Após restaurar `normal`, use **Tentar novamente** no catálogo. Os mesmos controles são acessíveis por REST:
+Em `/demo`, **Condições de rede** configura o catálogo: `normal` (80 ms), `slow` (1,2 s), `http-error` (503), `network-error` (falha de transporte) e `out-of-order` (1,5 s para busca com até um caractere; 100 ms para as demais). O controle também aceita latência de login entre 0 e 3.000 ms. Configuração persiste; **Restaurar cenário** retorna à rede normal. O formulário consulta `GET /api/demo` e reflete o cenário e as condições efetivas, inclusive a latência, após navegação e refresh. **Tentar novamente** repete a requisição; continua falhando enquanto a falha estiver forçada. No próprio erro, **Restaurar rede normal** configura catálogo normal e latência zero, reconsulta o estado e recupera os resultados sem limpar filtros, sessão ou carrinho. Também é possível abrir **Cenários** pelo erro. Os mesmos controles são acessíveis por REST:
 
 ```js
 await fetch('/api/demo', {
@@ -122,7 +122,7 @@ npm run test:report
 
 Em Linux/CI: `npx playwright install --with-deps chromium`. A porta 4173 precisa estar livre. Contextos isolados usam Service Worker real e Socket.IO da simulação, sem `page.route` substituindo respostas. A matriz Chromium cobre **390, 768 e 1440 px**. Relatório HTML em `playwright-report/`, JSON de recibo/screenshots anexados e traces nas falhas em `test-results/`.
 
-Os testes de catálogo cobrem filtros combinados, REST, ordenação/paginação, URL/refresh/histórico, precisão decimal, vazio, erros HTTP/transporte, skeleton/movimento reduzido, respostas atrasadas, Socket.IO, detalhe e layout. Os testes da jornada cobrem compra, carrinho persistido/mesclado, cadastro/sessão/expiração, isolamento por conta, recusa, mudanças de cotação/estoque, idempotência, resposta perdida, pending/refresh/reconexão, eventos duplicados/antigos e recibo imutável. Os oito testes do spike continuam nos três viewports; a expectativa da rota inicial acompanha a abertura do catálogo.
+Os testes de Cenários cobrem leitura REST, seleções persistidas, navegação, refresh, reset e recuperação de falhas forçadas. Os testes de catálogo cobrem contagens, slider/campos precisos, filtros combinados, REST, ordenação/paginação, URL/refresh/histórico, precisão decimal, vazio, erros HTTP/transporte, skeleton/movimento reduzido, respostas atrasadas, Socket.IO, detalhe e layout. Os testes da jornada cobrem compra, carrinho persistido/mesclado, cadastro/sessão/expiração, isolamento por conta, recusa, mudanças de cotação/estoque, idempotência, resposta perdida, pending/refresh/reconexão, eventos duplicados/antigos e recibo imutável. Os oito testes do spike continuam nos três viewports; a expectativa da rota inicial acompanha a abertura do catálogo.
 
 Repetição do cenário de mesclagem com login lento e concorrência equivalente ao CI:
 
@@ -131,7 +131,7 @@ npx playwright test tests/e2e/purchase.spec.ts --grep "reconcilia carrinhos" --r
 npx playwright test tests/e2e/catalog.spec.ts --workers 2
 ```
 
-A regressão visual é independente: `npm run test:visual`. Baselines iniciais de Windows/Chromium são versionadas em `tests/visual/snapshots/win32/` para 390, 768 e 1440 px, com fontes e imagens locais. O comando não cria nem atualiza snapshots automaticamente. Baselines Linux/macOS e inclusão visual no CI permanecem pendentes; a matriz funcional do CI continua nos três viewports.
+A regressão visual é independente: `npm run test:visual`. Baselines de Windows/Chromium são versionadas em `tests/visual/snapshots/win32/` para 390, 414, 768 e 1440 px, com fontes e imagens locais. O comando não cria nem atualiza snapshots automaticamente. Baselines Linux/macOS e inclusão visual no CI permanecem pendentes; a matriz funcional do CI continua nos três viewports.
 
 CI executa instalação, lint, tipos, build e E2E, com artifacts por 14 dias. Resultados locais e evidências estão em [docs/validation.md](docs/validation.md); resultados remotos devem ser conferidos no PR. Relatório de desenvolvimento fica em `playwright-report/dev`.
 

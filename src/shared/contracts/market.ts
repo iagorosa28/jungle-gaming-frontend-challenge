@@ -27,7 +27,15 @@ export function catalogSearchFromUrl(raw: Record<string, unknown>): CatalogSearc
   if (result.success) return result.data
   return catalogSearchSchema.parse({ ...values, min: undefined, max: undefined })
 }
-export const catalogResponseSchema = z.object({ items: z.array(catalogNftSchema), total: z.number().int().nonnegative(), page: z.number().int().positive(), pageSize: z.literal(9), pages: z.number().int().nonnegative() })
+const countSchema = z.number().int().nonnegative()
+export const catalogFacetsSchema = z.object({
+  total: countSchema,
+  categories: z.record(categorySchema, countSchema),
+  networks: z.record(networkSchema, countSchema),
+  priceRange: z.object({ min: ethSchema, max: ethSchema }),
+})
+export type CatalogFacets = z.infer<typeof catalogFacetsSchema>
+export const catalogResponseSchema = z.object({ items: z.array(catalogNftSchema), total: countSchema, page: z.number().int().positive(), pageSize: z.literal(9), pages: countSchema, facets: catalogFacetsSchema })
 export type CatalogResponse = z.infer<typeof catalogResponseSchema>
 export const networkConditionsSchema = z.object({ catalog: z.enum(['normal', 'slow', 'http-error', 'network-error', 'out-of-order']).default('normal'), loginDelayMs: z.number().int().min(0).max(3000).default(0) })
 export const cartSchema = z.object({ items: z.array(itemSchema), revision: z.number().int().nonnegative() })
@@ -51,6 +59,7 @@ export const orderSchema = z.object({
 })
 export const attemptSchema = z.object({ key: z.string().uuid(), input: orderInputSchema })
 export const scenarioSchema = z.enum(['success', 'declined', 'timeout', 'pending', 'price-change', 'sold-out'])
+export const demoStateSchema = z.object({ scenario: scenarioSchema, networkConditions: networkConditionsSchema })
 export const demoInputSchema = z.discriminatedUnion('action', [
   z.object({ action: z.literal('network'), ...networkConditionsSchema.shape }),
   z.object({ action: z.literal('reset'), scenario: scenarioSchema }),

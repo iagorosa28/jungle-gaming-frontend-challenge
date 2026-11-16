@@ -29,6 +29,31 @@ async function filters(page: Page) {
 }
 const cards = (page: Page) => page.getByTestId('nft-grid').getByRole('article')
 
+test('contagens vêm da API e slider sincroniza campos precisos antes de aplicar filtros', async ({ page }) => {
+  await open(page)
+  await expect(cards(page)).toHaveCount(9)
+  await filters(page)
+  await expect(page.locator('.filter-choice').filter({ has: page.getByRole('radio', { name: 'Música', exact: true }) }).locator('.facet-count')).toHaveText('(4)')
+  await expect(page.locator('.filter-choice').filter({ has: page.getByRole('radio', { name: 'Ethereum', exact: true }) }).locator('.facet-count')).toHaveText('(10)')
+  const facets = await page.evaluate(async () => (await (await fetch('/api/nfts?q=Emerald')).json()).facets)
+  expect(facets.total).toBe(21)
+  expect(Object.values(facets.categories).reduce((sum, n) => Number(sum) + Number(n), 0)).toBe(21)
+  await page.getByLabel('Mínimo (ETH)').fill('0.4')
+  await page.getByLabel('Máximo (ETH)').fill('1')
+  const minimum = page.getByRole('slider', { name: 'Preço mínimo no slider' })
+  await minimum.focus()
+  await page.keyboard.press('ArrowRight')
+  await expect(page.getByLabel('Mínimo (ETH)')).toHaveValue('0.41')
+  await page.getByRole('slider', { name: 'Preço máximo no slider' }).focus()
+  await page.keyboard.press('ArrowLeft')
+  await expect(page.getByLabel('Máximo (ETH)')).toHaveValue('0.99')
+  await expect(cards(page)).toHaveCount(9)
+  await page.getByRole('button', { name: 'Aplicar preço' }).click()
+  await expect(cards(page)).toHaveCount(5)
+  await expect(page).toHaveURL(/min=0.41/)
+  await expect(page).toHaveURL(/max=0.99/)
+})
+
 test('busca, categoria, rede e preços combinam parâmetros REST reais e permitem limpar', async ({ page }) => {
   await open(page)
   await search(page, 'Golden')
@@ -199,6 +224,20 @@ test('layout, assets locais, fonte e teclado nos três viewports', async ({ page
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
   expect(await page.evaluate(() => document.fonts.check('700 16px "Roboto Mono"'))).toBe(true)
   expect(await page.locator('.hero-art > img').first().evaluate(image => (image as HTMLImageElement).naturalWidth)).toBe(900)
+  if (page.viewportSize()!.width > 900) {
+    await expect(page.locator('.topbar-search')).toBeVisible()
+    await expect(page.locator('.catalog-search-row')).toBeHidden()
+    const brand = await page.getByRole('link', { name: 'Kurio, início' }).boundingBox()
+    const navigation = await page.getByRole('navigation', { name: 'Marketplace' }).boundingBox()
+    const actions = await page.locator('.header-actions').boundingBox()
+    expect(brand!.x).toBeLessThan(navigation!.x)
+    expect(navigation!.x + navigation!.width).toBeLessThan(actions!.x)
+  } else {
+    await expect(page.locator('.topbar-search')).toBeHidden()
+    const search = await page.locator('.catalog-search-row').boundingBox()
+    const hero = await page.locator('.catalog-hero').boundingBox()
+    expect(search!.y + search!.height).toBeLessThan(hero!.y)
+  }
   await page.keyboard.press('Tab')
   await expect(page.getByRole('link', { name: 'Pular para o conteúdo' })).toBeFocused()
   await page.keyboard.press('Enter')

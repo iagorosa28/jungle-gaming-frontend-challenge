@@ -11,6 +11,7 @@ import { emitOrder, resumeOrders, settle } from './orders'
 resumeOrders()
 export const marketHandlers = [
   ...sessionHandlers, ...catalogHandlers, ...orderHandlers,
+  http.get('/api/demo', endpoint(() => ({ scenario: state.scenario, networkConditions: state.networkConditions }))),
   http.post('/api/demo', endpoint(async request => {
     const input = demoInputSchema.parse(await request.json())
     if (input.action === 'reset') reset(input.scenario)
@@ -19,6 +20,6 @@ export const marketHandlers = [
     else if (input.action === 'expire') { state.session.expiresAt = Date.now() - 1; save() }
     else if (input.action === 'settle') settle(true)
     else for (const order of state.orders) emitOrder(order, input.action === 'stale')
-    return { scenario: state.scenario }
+    return { scenario: state.scenario, networkConditions: state.networkConditions }
   })),
 ]
