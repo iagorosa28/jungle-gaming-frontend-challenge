@@ -1,0 +1,86 @@
+{
+  "purpose": "Auditoria da página técnica atual; não equivale à avaliação final de início/detalhe.",
+  "profile": "mobile",
+  "runs": 3,
+  "node": "v24.22.2",
+  "platform": "win32",
+  "measurements": [
+    {
+      "lighthouseVersion": "13.6.0",
+      "environment": {
+        "networkUserAgent": "Mozilla/5.0 (Linux; Android 11; moto g power (2022)) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/157.0.0.0 Mobile Safari/537.36",
+        "hostUserAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/157.0.0.0 Safari/537.36",
+        "benchmarkIndex": 3036,
+        "credits": {
+          "axe-core": "4.14.0"
+        }
+      },
+      "fetchTime": "2026-11-16T10:15:03.488Z",
+      "url": "http://127.0.0.1:4173/?q=&sort=recent&page=1",
+      "categories": {
+        "performance": 0.79,
+        "accessibility": 1,
+        "best-practices": 1,
+        "seo": 0.92
+      },
+      "lcp": 3481.64825,
+      "cls": 0.2108685611968381,
+      "tbt": 154.13517500000012
+    },
+    {
+      "lighthouseVersion": "13.6.0",
+      "environment": {
+        "networkUserAgent": "Mozilla/5.0 (Linux; Android 11; moto g power (2022)) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/157.0.0.0 Mobile Safari/537.36",
+        "hostUserAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/157.0.0.0 Safari/537.36",
+        "benchmarkIndex": 2983.5,
+        "credits": {
+          "axe-core": "4.14.0"
+        }
+      },
+      "fetchTime": "2026-11-16T10:15:10.858Z",
+      "url": "http://127.0.0.1:4173/?q=&sort=recent&page=1",
+      "categories": {
+        "performance": 0.8,
+        "accessibility": 1,
+        "best-practices": 1,
+        "seo": 0.92
+      },
+      "lcp": 3488.99075,
+      "cls": 0.2108685611968381,
+      "tbt": 99.49907499999995
+    },
+    {
+      "lighthouseVersion": "13.6.0",
+      "environment": {
+        "networkUserAgent": "Mozilla/5.0 (Linux; Android 11; moto g power (2022)) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/157.0.0.0 Mobile Safari/537.36",
+        "hostUserAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/157.0.0.0 Safari/537.36",
+        "benchmarkIndex": 3043.5,
+        "credits": {
+          "axe-core": "4.14.0"
+        }
+      },
+      "fetchTime": "2026-11-16T10:15:17.857Z",
+      "url": "http://127.0.0.1:4173/?q=&sort=recent&page=1",
+      "categories": {
+        "performance": 0.8,
+        "accessibility": 1,
+        "best-practices": 1,
+        "seo": 0.92
+      },
+      "lcp": 3478.67425,
+      "cls": 0.21085901484725397,
+      "tbt": 105.6674250000001
+    }
+  ],
+  "medians": {
+    "performance": 0.8,
+    "accessibility": 1,
+    "best-practices": 1,
+    "seo": 0.92
+  },
+  "metrics": {
+    "lcp": 3481.64825,
+    "cls": 0.2108685611968381,
+    "tbt": 105.6674250000001
+  }
+}
